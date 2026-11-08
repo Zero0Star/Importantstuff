@@ -8934,7 +8934,7 @@ Event:FireServer(
 )
 local function deleteDirectChildModelsAndParts()
     local workspace = game:GetService("Workspace")
-    local names = { "A-200", "A60", "Amin-60", "Black-A60", "Deer god","Black Hole Particle effect","DeerGod",
+    local names = { "A-200", "A60", "Amin-60", "Black-A60", "Deer god","Black Hole Particle effect","Deer God",
         "Frostbite", "@&%^#*$Indescribable God!@$*&^!Q(* ", "LightSpeed",
         "Rebound", "Ripper", "Following_ENEMY", "Silence","Dread","Muffler","Common Sence","Fluster","Kitty","Broken eyes","Angry Munci","Shadow","LEVEL0","Him","Hunger","WH1T3","Obsession","HimMoving","smiler", "Chainsmoker" } -- 保持不变
     for _, name in ipairs(names) do
@@ -9436,7 +9436,7 @@ local SPEED = 12
 local CHASE_RANGE = 75
 local HIT_RANGE = 10
 local MAX_ROOMS = 15
-local HEIGHT_OFFSET = Vector3.new(0, -0.7, 0)
+local HEIGHT_OFFSET = Vector3.new(0, 2.4, 0)
 local DEATH_POSITION = Vector3.new(244, -304, -6)
 local DEATH_SECONDS = 15
 local CAMERA_SHAKE_INTERVAL = 0.8
