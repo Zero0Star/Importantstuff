@@ -2216,7 +2216,7 @@ local RunService = game:GetService("RunService")
 
 local MODEL_ID = 137575158482605
 local MOVE_SPEED = 25
-local HEIGHT_OFFSET = Vector3.new(0, -3, 0)
+local HEIGHT_OFFSET = Vector3.new(0, 0, 0)
 local RAYCAST_DISTANCE = 50
 local RUNNING_SPEED = 15
 
@@ -3482,7 +3482,7 @@ if not camera then
 end
 
 local distance = 8
-local worldHeight = -5
+local worldHeight = 0
 local duration = 10
 local escapeThreshold = 7
 
