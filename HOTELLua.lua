@@ -9430,7 +9430,7 @@ if not playerGui then
 end
 
 local ENTITY_ASSET_ID = 104577643723831
-local DEATH_ASSET_ID = 116498750397920
+local DEATH_ASSET_ID = 83935353406484
 local VICTIM_ANIMATION_ID = "rbxassetid://131382303107033"
 local SPEED = 12
 local CHASE_RANGE = 75
@@ -9441,9 +9441,10 @@ local DEATH_POSITION = Vector3.new(244, -304, -6)
 local DEATH_SECONDS = 15
 local CAMERA_SHAKE_INTERVAL = 0.8
 local CAMERA_SHAKE_MAX_DISTANCE = 300
-local CAMERA_SHAKE_MIN_MAGNITUDE = 0.3
-local CAMERA_SHAKE_MAX_MAGNITUDE = 3
+local CAMERA_SHAKE_MIN_MAGNITUDE = 0.5
+local CAMERA_SHAKE_MAX_MAGNITUDE = 5
 local START_SEARCH_TIMEOUT = 25
+local WAYPOINT_PASS_RADIUS = 3
 
 local function loadModel(assetId, fallbackName)
     local ok, objects = pcall(function()
@@ -9796,9 +9797,52 @@ local currentGoal = nil
 local currentRoomNumber = rooms[startIndex].Number
 local roomsEntered = 1
 local visited = setmetatable({}, { __mode = "k" })
+local routeProgressByRoom = {}
+local completedNodeKeys = {}
+local completedRoomExits = {}
 local finished = false
 
-visited[startNode] = true
+local function getStableNodeKey(roomNumber, node)
+    local position = node.Position
+    return tostring(roomNumber) .. ":" .. node.Name .. ":" .. string.format(
+        "%.1f:%.1f:%.1f", position.X, position.Y, position.Z
+    )
+end
+
+local function completeNode(roomNumber, node, nodeIndex, isExit)
+    visited[node] = true
+    if isExit then
+        completedRoomExits[roomNumber] = true
+    else
+        local previous = routeProgressByRoom[roomNumber] or 0
+        if nodeIndex > previous then
+            routeProgressByRoom[roomNumber] = nodeIndex
+        end
+        completedNodeKeys[getStableNodeKey(roomNumber, node)] = true
+    end
+end
+
+local function nodeAlreadyCompleted(roomNumber, node, nodeIndex, isExit)
+    if visited[node] then
+        return true
+    end
+    if isExit then
+        return completedRoomExits[roomNumber] == true
+    end
+    return nodeIndex <= (routeProgressByRoom[roomNumber] or 0)
+        or completedNodeKeys[getStableNodeKey(roomNumber, node)] == true
+end
+
+if #startNodes > 0 then
+    for index, node in ipairs(startNodes) do
+        if node == startNode then
+            completeNode(currentRoomNumber, node, index, false)
+            break
+        end
+    end
+else
+    completeNode(currentRoomNumber, startNode, 0, true)
+end
 
 local ERROR_PARTICLE_TEXTURES = {
     "rbxassetid://6214195404",
@@ -10341,7 +10385,10 @@ local function findRouteGoal()
     if currentGoal then
         local room = currentGoal.Room
         local node = currentGoal.Node
-        if room and room.Parent and node and node:IsDescendantOf(room) then
+        if room and room.Parent and node and node:IsDescendantOf(room)
+            and not nodeAlreadyCompleted(
+                currentGoal.RoomNumber, node, currentGoal.Index, currentGoal.IsExit
+            ) then
             return currentGoal
         end
         currentGoal = nil
@@ -10371,18 +10418,22 @@ local function findRouteGoal()
         local room = roomData.Room
         local nodes = getNodes(room)
         local nextNode = nil
+        local nextIndex = 0
+        local isExit = false
 
         if #nodes > 0 then
-            for _, node in ipairs(nodes) do
-                if not visited[node] then
+            for nodeIndex, node in ipairs(nodes) do
+                if not nodeAlreadyCompleted(roomData.Number, node, nodeIndex, false) then
                     nextNode = node
+                    nextIndex = nodeIndex
                     break
                 end
             end
         else
             local roomExit = getRoomExit(room)
-            if roomExit and not visited[roomExit] then
+            if roomExit and not nodeAlreadyCompleted(roomData.Number, roomExit, 0, true) then
                 nextNode = roomExit
+                isExit = true
             end
         end
 
@@ -10395,7 +10446,13 @@ local function findRouteGoal()
                 roomsEntered = roomsEntered + 1
             end
 
-            currentGoal = { Room = room, Node = nextNode }
+            currentGoal = {
+                Room = room,
+                RoomNumber = roomData.Number,
+                Node = nextNode,
+                Index = nextIndex,
+                IsExit = isExit
+            }
             return currentGoal
         end
 
@@ -10405,6 +10462,72 @@ local function findRouteGoal()
     end
 
     return "finished"
+end
+
+local lastChasePosition = nil
+local lastChaseProgressCheck = 0
+
+local function markWaypointsPassedDuringChase(fromPosition, toPosition)
+    local travel = toPosition - fromPosition
+    local distanceSquared = travel:Dot(travel)
+    if distanceSquared <= 0.0001 then
+        return
+    end
+
+    local orderedRooms = getRooms()
+    local targetRoomIndex = math.max(1, #orderedRooms - 1)
+    local laterRoomsToEnter = MAX_ROOMS - roomsEntered
+
+    for roomIndex = 1, targetRoomIndex do
+        local roomData = orderedRooms[roomIndex]
+        if roomData.Number >= currentRoomNumber then
+            if roomData.Number > currentRoomNumber then
+                if laterRoomsToEnter <= 0 then
+                    break
+                end
+                laterRoomsToEnter = laterRoomsToEnter - 1
+            end
+
+            local nodes = getNodes(roomData.Room)
+            if #nodes > 0 then
+                for index, node in ipairs(nodes) do
+                    if not nodeAlreadyCompleted(roomData.Number, node, index, false) then
+                        local waypointPosition = node.Position + HEIGHT_OFFSET
+                        local fraction = math.clamp(
+                            (waypointPosition - fromPosition):Dot(travel) / distanceSquared,
+                            0,
+                            1
+                        )
+                        local nearestPosition = fromPosition + travel * fraction
+                        if (nearestPosition - waypointPosition).Magnitude <= WAYPOINT_PASS_RADIUS then
+                            completeNode(roomData.Number, node, index, false)
+                        end
+                    end
+                end
+            else
+                local roomExit = getRoomExit(roomData.Room)
+                if roomExit and not nodeAlreadyCompleted(roomData.Number, roomExit, 0, true) then
+                    local waypointPosition = roomExit.Position + HEIGHT_OFFSET
+                    local fraction = math.clamp(
+                        (waypointPosition - fromPosition):Dot(travel) / distanceSquared,
+                        0,
+                        1
+                    )
+                    local nearestPosition = fromPosition + travel * fraction
+                    if (nearestPosition - waypointPosition).Magnitude <= WAYPOINT_PASS_RADIUS then
+                        completeNode(roomData.Number, roomExit, 0, true)
+                    end
+                end
+            end
+        end
+    end
+
+    if currentGoal and nodeAlreadyCompleted(
+        currentGoal.RoomNumber, currentGoal.Node, currentGoal.Index, currentGoal.IsExit
+    ) then
+        currentGoal = nil
+        pathMovement = nil
+    end
 end
 
 local function finish()
@@ -10496,12 +10619,32 @@ while running and entity.Parent do
             pathMovement = nil
             local character, root, humanoid = getAliveCharacter(lockedPlayer)
             if character and root and humanoid and character == lockedCharacter then
+                if not lastChasePosition then
+                    lastChasePosition = entity:GetPivot().Position
+                end
+                local previousPosition = lastChasePosition
                 approach(entity, root.Position, deltaTime)
+                local currentPosition = entity:GetPivot().Position
+                if os.clock() - lastChaseProgressCheck >= 0.1 then
+                    markWaypointsPassedDuringChase(previousPosition, currentPosition)
+                    lastChasePosition = currentPosition
+                    lastChaseProgressCheck = os.clock()
+                end
             else
                 lockedPlayer = nil
                 lockedCharacter = nil
+                if lastChasePosition then
+                    markWaypointsPassedDuringChase(lastChasePosition, entity:GetPivot().Position)
+                end
+                lastChasePosition = nil
+                lastChaseProgressCheck = 0
             end
         else
+            if lastChasePosition then
+                markWaypointsPassedDuringChase(lastChasePosition, entity:GetPivot().Position)
+            end
+            lastChasePosition = nil
+            lastChaseProgressCheck = 0
             local goal = findRouteGoal()
             if goal == "finished" then
                 break
@@ -10510,7 +10653,7 @@ while running and entity.Parent do
                 local node = goal.Node
                 if room.Parent and node:IsDescendantOf(room) then
                     if moveAlongOriginalRipperPath(entity, node, deltaTime) then
-                        visited[node] = true
+                        completeNode(goal.RoomNumber, node, goal.Index, goal.IsExit)
                         currentGoal = nil
                     end
                 else
@@ -10532,6 +10675,7 @@ while running and entity.Parent do
 end
 
 finish()
+
 end
 
 function entityBehaviors.LightSpeed()
