@@ -4214,6 +4214,8 @@ local entityConfig = {
 
 local checkedEntities = {}
 
+local CONTAINER_NAMES = {"############", "Scary Entity"}
+
 local function universalCheckSound(sound)
     if not sound:IsA("Sound") then return end
 
@@ -4222,7 +4224,8 @@ local function universalCheckSound(sound)
 
     if targetBehavior then
         local parent = sound.Parent
-        if parent and parent.Name == "############" then
+
+        if parent and table.find(CONTAINER_NAMES, parent.Name) then
             local grandParent = parent.Parent
             if grandParent and grandParent.Name == "CustomEntity" then
                 if not checkedEntities[grandParent] then
@@ -4241,10 +4244,13 @@ end)
 
 for _, entity in pairs(workspace:GetChildren()) do
     if entity.Name == "CustomEntity" then
-        local scary = entity:FindFirstChild("############")
-        if scary then
-            for _, child in pairs(scary:GetChildren()) do
-                universalCheckSound(child)
+
+        for _, containerName in ipairs(CONTAINER_NAMES) do
+            local container = entity:FindFirstChild(containerName)
+            if container then
+                for _, child in pairs(container:GetChildren()) do
+                    universalCheckSound(child)
+                end
             end
         end
     end
