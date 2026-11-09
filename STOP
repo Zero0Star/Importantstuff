@@ -370,7 +370,7 @@ end
 UB.MouseButton1Click:Connect(function()
     playAudio()
     pcall(function()
-        loadstring(game:HttpGet("https://github.com/Zero0Star/RipperNewSound/blob/master/HardCore-Mode.lua?raw=true"))()
+        loadstring(game:HttpGet("https://github.com/Zero0Star/RipperNewSound/blob/master/MODES-H.lua?raw=true"))()
     end)
 end)
 
