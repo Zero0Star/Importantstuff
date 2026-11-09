@@ -745,14 +745,14 @@ PB.MouseButton1Click:Connect(function()
 
     task.spawn(function()
         local scriptUrls = {
-            "https://raw.githubusercontent.com/Zero0Star/Importantstuff/master/HotelSound.lua?raw=true",
-            "https://raw.githubusercontent.com/Zero0Star/Importantstuff/master/HOTELLua2.lua?raw=true",
-            "https://raw.githubusercontent.com/Zero0Star/Importantstuff/master/HOTELLua.lua?raw=true",
-            "https://raw.githubusercontent.com/Zero0Star/RipperNewSound/master/Charm.lua?raw=true",
-            "https://raw.githubusercontent.com/Zero0Star/Importantstuff/master/HOTELMusic.lua?raw=true",
-            "https://raw.githubusercontent.com/Zero0Star/Importantstuff/master/HOTELLua4.lua?raw=true",
-            "https://raw.githubusercontent.com/Zero0Star/Importantstuff/master/HOTELLua5.lua?raw=true",
-            "https://raw.githubusercontent.com/Zero0Star/Importantstuff/master/HOTELITEM.lua?raw=true"
+            "https://raw.githubusercontent.com/Zero0Star/Importantstuff/master/HotelSound.lua",
+            "https://raw.githubusercontent.com/Zero0Star/Importantstuff/master/HOTELLua2.lua",
+            "https://raw.githubusercontent.com/Zero0Star/Importantstuff/master/HOTELLua.lua",
+            "https://raw.githubusercontent.com/Zero0Star/RipperNewSound/master/Charm.lua",
+            "https://raw.githubusercontent.com/Zero0Star/Importantstuff/master/HOTELMusic.lua",
+            "https://raw.githubusercontent.com/Zero0Star/Importantstuff/master/HOTELLua4.lua",
+            "https://raw.githubusercontent.com/Zero0Star/Importantstuff/master/HOTELLua5.lua",
+            "https://raw.githubusercontent.com/Zero0Star/Importantstuff/master/HOTELITEM.lua"
             
         }
         for _, url in ipairs(scriptUrls) do
