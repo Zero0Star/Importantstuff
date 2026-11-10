@@ -4199,6 +4199,965 @@ task.spawn(function()
     end
 end)
 end
+function entityBehaviors.MEshis()
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
+local TweenService = game:GetService("TweenService")
+
+local TARGET_PLAYER = "goat_qiu"
+local MODEL_ID = "rbxassetid://117182846262688"
+
+local RIGHT_OFFSET = 5.5
+local BACK_OFFSET = 4.5
+local HEIGHT_OFFSET = 0
+
+local FOLLOW_SMOOTHNESS = 5
+local ROTATION_SMOOTHNESS = 4
+local MOVEMENT_THRESHOLD = 0.6
+
+local IDLE_DURATION = 30
+local TALK_DURATION = 30
+local TRANSITION_TIME = 0.45
+local FADE_DURATION = 1.5
+
+local targetPlayer = Players:WaitForChild(TARGET_PLAYER)
+
+local success, model = pcall(function()
+    return game:GetObjects(MODEL_ID)[1]
+end)
+
+if not success or not model then
+    return
+end
+
+if not model:IsA("Model") then
+    model:Destroy()
+    return
+end
+
+model.Name = "PetFolDower_" .. TARGET_PLAYER
+model.Parent = Workspace
+
+local rootPart =
+    model:FindFirstChild("HumanoidRootPart", true)
+    or model:FindFirstChild("Root", true)
+    or model.PrimaryPart
+    or model:FindFirstChildWhichIsA("BasePart", true)
+
+local animationController =
+    model:FindFirstChildWhichIsA("AnimationController", true)
+
+local animSaves = model:FindFirstChild("AnimSaves", true)
+
+if not rootPart or not animationController or not animSaves then
+    model:Destroy()
+    return
+end
+
+local animator =
+    animationController:FindFirstChildOfClass("Animator")
+
+if not animator then
+    animator = Instance.new("Animator")
+    animator.Parent = animationController
+end
+
+local idleAnimation = animSaves:FindFirstChild("idle")
+local talkStartAnimation = animSaves:FindFirstChild("talk start")
+local talkLoopAnimation = animSaves:FindFirstChild("talk loop")
+local talkEndAnimation = animSaves:FindFirstChild("talk end")
+
+if not idleAnimation
+    or not talkStartAnimation
+    or not talkLoopAnimation
+    or not talkEndAnimation then
+
+    model:Destroy()
+    return
+end
+
+model.PrimaryPart = rootPart
+
+for _, part in ipairs(model:GetDescendants()) do
+    if part:IsA("BasePart") then
+        part.Anchored = part == rootPart
+        part.CanCollide = false
+        part.CanTouch = false
+        part.CanQuery = false
+
+        if part ~= rootPart then
+            part.Massless = true
+        end
+    end
+end
+
+local alive = true
+local followConnection = nil
+local animationConnection = nil
+local deathConnection = nil
+local characterConnection = nil
+
+local lastPlayerRoot = nil
+local lastPlayerPosition = nil
+
+local currentPosition = nil
+local targetPosition = nil
+local currentRotation = nil
+local targetRotation = nil
+
+local activeAnimation = nil
+local motorMap = {}
+local motors = {}
+local animationCache = {}
+
+local EasingStyleMap = {
+    [Enum.PoseEasingStyle.Linear] = Enum.EasingStyle.Linear,
+    [Enum.PoseEasingStyle.Bounce] = Enum.EasingStyle.Bounce,
+    [Enum.PoseEasingStyle.Cubic] = Enum.EasingStyle.Cubic,
+    [Enum.PoseEasingStyle.Elastic] = Enum.EasingStyle.Elastic
+}
+
+local EasingDirectionMap = {
+    [Enum.PoseEasingDirection.In] = Enum.EasingDirection.In,
+    [Enum.PoseEasingDirection.Out] = Enum.EasingDirection.Out,
+    [Enum.PoseEasingDirection.InOut] = Enum.EasingDirection.InOut
+}
+
+for _, joint in ipairs(model:GetDescendants()) do
+    if joint:IsA("Motor6D") and joint.Part0 and joint.Part1 then
+        local key =
+            joint.Part0.Name .. "\0" .. joint.Part1.Name
+
+        motorMap[key] = joint
+        table.insert(motors, joint)
+    end
+end
+
+local function getFlatCFrame(root)
+    local look = root.CFrame.LookVector
+    local flatLook = Vector3.new(look.X, 0, look.Z)
+
+    if flatLook.Magnitude < 0.001 then
+        flatLook = Vector3.new(0, 0, -1)
+    end
+
+    return CFrame.lookAt(
+        root.Position,
+        root.Position + flatLook.Unit
+    )
+end
+
+local function getFollowTarget(root)
+    local base = getFlatCFrame(root)
+
+    local offset = base * CFrame.new(
+        RIGHT_OFFSET,
+        HEIGHT_OFFSET,
+        BACK_OFFSET
+    )
+
+    return offset.Position, base.Rotation
+end
+
+local function setModelCFrame(position, rotation)
+    if not alive or not rootPart.Parent then
+        return
+    end
+
+    rootPart.CFrame = CFrame.new(position) * rotation
+end
+
+local function initializeFollower(root)
+    local position, rotation = getFollowTarget(root)
+
+    currentPosition = position
+    targetPosition = position
+
+    currentRotation = rotation
+    targetRotation = rotation
+
+    lastPlayerPosition = root.Position
+    lastPlayerRoot = root
+
+    setModelCFrame(position, rotation)
+end
+
+local function prepareKeyframeSequence(sequence)
+    if animationCache[sequence] then
+        return animationCache[sequence]
+    end
+
+    local keyframes = sequence:GetKeyframes()
+
+    table.sort(keyframes, function(a, b)
+        return a.Time < b.Time
+    end)
+
+    local poseTracks = {}
+
+    for _, keyframe in ipairs(keyframes) do
+        for _, pose in ipairs(keyframe:GetDescendants()) do
+            if pose:IsA("Pose") and pose.Weight > 0 then
+                local parent = pose.Parent
+
+                if parent and parent:IsA("Pose") then
+                    local key =
+                        parent.Name .. "\0" .. pose.Name
+
+                    local motor = motorMap[key]
+
+                    if motor then
+                        if not poseTracks[motor] then
+                            poseTracks[motor] = {}
+                        end
+
+                        table.insert(poseTracks[motor], {
+                            Time = keyframe.Time,
+                            CFrame = pose.CFrame,
+                            Style = pose.EasingStyle,
+                            Direction = pose.EasingDirection
+                        })
+                    end
+                end
+            end
+        end
+    end
+
+    for _, frames in pairs(poseTracks) do
+        table.sort(frames, function(a, b)
+            return a.Time < b.Time
+        end)
+    end
+
+    local duration = 0
+
+    if #keyframes > 0 then
+        duration = keyframes[#keyframes].Time
+    end
+
+    local data = {
+        Duration = duration,
+        Tracks = poseTracks
+    }
+
+    animationCache[sequence] = data
+
+    return data
+end
+
+local function evaluatePose(frames, timePosition)
+    if not frames or #frames == 0 then
+        return CFrame.new()
+    end
+
+    if timePosition <= frames[1].Time then
+        return frames[1].CFrame
+    end
+
+    if timePosition >= frames[#frames].Time then
+        return frames[#frames].CFrame
+    end
+
+    for i = 1, #frames - 1 do
+        local first = frames[i]
+        local second = frames[i + 1]
+
+        if timePosition >= first.Time
+            and timePosition <= second.Time then
+
+            local duration = second.Time - first.Time
+
+            if duration <= 0 then
+                return second.CFrame
+            end
+
+            local alpha = math.clamp(
+                (timePosition - first.Time) / duration,
+                0,
+                1
+            )
+
+            if second.Style == Enum.PoseEasingStyle.Constant then
+                alpha = alpha >= 1 and 1 or 0
+            else
+                alpha = TweenService:GetValue(
+                    alpha,
+                    EasingStyleMap[second.Style]
+                        or Enum.EasingStyle.Linear,
+                    EasingDirectionMap[second.Direction]
+                        or Enum.EasingDirection.InOut
+                )
+            end
+
+            return first.CFrame:Lerp(
+                second.CFrame,
+                alpha
+            )
+        end
+    end
+
+    return frames[#frames].CFrame
+end
+
+local function stopAnimation(immediate)
+    if not activeAnimation then
+        return
+    end
+
+    local old = activeAnimation
+    activeAnimation = nil
+
+    if old.Kind == "Animation" and old.Track then
+        local fadeTime = immediate and 0.05 or TRANSITION_TIME
+
+        old.Track:Stop(fadeTime)
+
+        task.delay(fadeTime + 0.1, function()
+            pcall(function()
+                old.Track:Destroy()
+            end)
+        end)
+    end
+end
+
+local function playAnimation(animationObject, looped)
+    if not alive or not model.Parent then
+        return nil
+    end
+
+    local previous = activeAnimation
+
+    if animationObject:IsA("KeyframeSequence") then
+        local data = prepareKeyframeSequence(animationObject)
+
+        if previous and previous.Kind == "Animation" then
+            stopAnimation(false)
+        end
+
+        local startingPoses = {}
+
+        for _, motor in ipairs(motors) do
+            if motor.Parent then
+                startingPoses[motor] = motor.Transform
+            end
+        end
+
+        local state = {
+            Kind = "Keyframe",
+            Data = data,
+            Duration = data.Duration,
+            Elapsed = 0,
+            Started = os.clock(),
+            Looped = looped,
+            StartingPoses = startingPoses,
+            BlendDuration = TRANSITION_TIME
+        }
+
+        activeAnimation = state
+
+        return state
+    end
+
+    if animationObject:IsA("Animation") then
+        local loaded, track = pcall(function()
+            return animator:LoadAnimation(animationObject)
+        end)
+
+        if not loaded or not track then
+            return nil
+        end
+
+        track.Priority = Enum.AnimationPriority.Action
+        track.Looped = looped
+
+        local state = {
+            Kind = "Animation",
+            Track = track,
+            Started = os.clock(),
+            Looped = looped
+        }
+
+        activeAnimation = state
+
+        track:Play(TRANSITION_TIME, 1, 1)
+
+        if previous and previous.Kind == "Animation" then
+            local oldTrack = previous.Track
+
+            oldTrack:Stop(TRANSITION_TIME)
+
+            task.delay(TRANSITION_TIME + 0.1, function()
+                pcall(function()
+                    oldTrack:Destroy()
+                end)
+            end)
+        end
+
+        return state
+    end
+
+    return nil
+end
+
+animationConnection = RunService.PreSimulation:Connect(function(dt)
+    if not alive or not model.Parent then
+        return
+    end
+
+    local state = activeAnimation
+
+    if not state or state.Kind ~= "Keyframe" then
+        return
+    end
+
+    state.Elapsed = state.Elapsed + dt
+
+    local duration = state.Duration
+    local timePosition = 0
+
+    if duration > 0 then
+        if state.Looped then
+            timePosition = state.Elapsed % duration
+        else
+            timePosition = math.min(state.Elapsed, duration)
+        end
+    end
+
+    local blendAlpha = math.clamp(
+        state.Elapsed / math.max(state.BlendDuration, 0.001),
+        0,
+        1
+    )
+
+    blendAlpha = TweenService:GetValue(
+        blendAlpha,
+        Enum.EasingStyle.Sine,
+        Enum.EasingDirection.InOut
+    )
+
+    for _, motor in ipairs(motors) do
+        if motor.Parent then
+            local frames = state.Data.Tracks[motor]
+            local targetPose = evaluatePose(
+                frames,
+                timePosition
+            )
+
+            if blendAlpha < 1 then
+                local startingPose =
+                    state.StartingPoses[motor]
+                    or CFrame.new()
+
+                motor.Transform = startingPose:Lerp(
+                    targetPose,
+                    blendAlpha
+                )
+            else
+                motor.Transform = targetPose
+            end
+        end
+    end
+end)
+
+local function waitAlive(duration)
+    local deadline = os.clock() + duration
+
+    while alive
+        and model.Parent
+        and os.clock() < deadline do
+
+        task.wait(0.03)
+    end
+
+    return alive and model.Parent ~= nil
+end
+
+local function waitForAnimationEnding(state)
+    if not state then
+        return alive
+    end
+
+    local startTime = os.clock()
+
+    while alive and model.Parent and activeAnimation == state do
+        local elapsed = os.clock() - startTime
+        local duration = 0
+
+        if state.Kind == "Keyframe" then
+            duration = state.Duration
+        elseif state.Kind == "Animation" then
+            duration = state.Track.Length
+        end
+
+        if duration > 0 then
+            local transitionStart = math.max(
+                0,
+                duration - TRANSITION_TIME * 0.65
+            )
+
+            if elapsed >= transitionStart then
+                break
+            end
+        elseif elapsed >= 8 then
+            break
+        end
+
+        if state.Kind == "Animation"
+            and not state.Track.IsPlaying
+            and elapsed > 0.2 then
+            break
+        end
+
+        task.wait(0.03)
+    end
+
+    return alive and model.Parent ~= nil
+end
+
+local function fadeAndDestroy()
+    if not alive then
+        return
+    end
+
+    alive = false
+
+    stopAnimation(true)
+
+    if followConnection then
+        followConnection:Disconnect()
+        followConnection = nil
+    end
+
+    if animationConnection then
+        animationConnection:Disconnect()
+        animationConnection = nil
+    end
+
+    if deathConnection then
+        deathConnection:Disconnect()
+        deathConnection = nil
+    end
+
+    if characterConnection then
+        characterConnection:Disconnect()
+        characterConnection = nil
+    end
+
+    local tweenInfo = TweenInfo.new(
+        FADE_DURATION,
+        Enum.EasingStyle.Quad,
+        Enum.EasingDirection.Out
+    )
+
+    for _, instance in ipairs(model:GetDescendants()) do
+        if instance:IsA("BasePart")
+            or instance:IsA("Decal")
+            or instance:IsA("Texture") then
+
+            TweenService:Create(
+                instance,
+                tweenInfo,
+                {
+                    Transparency = 1
+                }
+            ):Play()
+        end
+    end
+
+    task.wait(FADE_DURATION)
+
+    if model.Parent then
+        model:Destroy()
+    end
+end
+
+local function bindCharacter(character)
+    if deathConnection then
+        deathConnection:Disconnect()
+        deathConnection = nil
+    end
+
+    lastPlayerRoot = nil
+    lastPlayerPosition = nil
+
+    task.spawn(function()
+        local humanoid = character:WaitForChild("Humanoid", 10)
+
+        if not humanoid or not alive then
+            return
+        end
+
+        if targetPlayer.Character ~= character then
+            return
+        end
+
+        if humanoid.Health <= 0 then
+            fadeAndDestroy()
+            return
+        end
+
+        deathConnection = humanoid.Died:Connect(function()
+            fadeAndDestroy()
+        end)
+    end)
+end
+
+characterConnection = targetPlayer.CharacterAdded:Connect(
+    bindCharacter
+)
+
+if targetPlayer.Character then
+    bindCharacter(targetPlayer.Character)
+end
+
+followConnection = RunService.RenderStepped:Connect(function(dt)
+    if not alive or not model.Parent then
+        return
+    end
+
+    local character = targetPlayer.Character
+
+    if not character then
+        return
+    end
+
+    local playerRoot =
+        character:FindFirstChild("HumanoidRootPart")
+
+    if not playerRoot then
+        return
+    end
+
+    if playerRoot ~= lastPlayerRoot then
+        initializeFollower(playerRoot)
+        return
+    end
+
+    local playerPosition = playerRoot.Position
+    local displacement = playerPosition - lastPlayerPosition
+
+    local horizontalDisplacement = Vector3.new(
+        displacement.X,
+        0,
+        displacement.Z
+    )
+
+    local playerSpeed =
+        horizontalDisplacement.Magnitude
+        / math.max(dt, 0.001)
+
+    local isMoving = playerSpeed > MOVEMENT_THRESHOLD
+
+    if isMoving then
+        local newPosition, newRotation =
+            getFollowTarget(playerRoot)
+
+        targetPosition = newPosition
+        targetRotation = newRotation
+    else
+        targetRotation = currentRotation
+    end
+
+    lastPlayerPosition = playerPosition
+
+    local distance =
+        (targetPosition - currentPosition).Magnitude
+
+    local adaptiveSmoothness =
+        FOLLOW_SMOOTHNESS
+        + math.min(distance * 0.15, 4)
+
+    local positionAlpha =
+        1 - math.exp(-adaptiveSmoothness * dt)
+
+    local rotationAlpha =
+        1 - math.exp(-ROTATION_SMOOTHNESS * dt)
+
+    currentPosition = currentPosition:Lerp(
+        targetPosition,
+        positionAlpha
+    )
+
+    currentRotation = currentRotation:Lerp(
+        targetRotation,
+        rotationAlpha
+    )
+
+    setModelCFrame(
+        currentPosition,
+        currentRotation
+    )
+end)
+
+task.spawn(function()
+    while alive and model.Parent do
+        playAnimation(idleAnimation, true)
+
+        if not waitAlive(IDLE_DURATION) then
+            break
+        end
+
+        local talkStart = playAnimation(
+            talkStartAnimation,
+            false
+        )
+
+        if not waitForAnimationEnding(talkStart) then
+            break
+        end
+
+        playAnimation(talkLoopAnimation, true)
+
+        if not waitAlive(TALK_DURATION) then
+            break
+        end
+
+        local talkEnd = playAnimation(
+            talkEndAnimation,
+            false
+        )
+
+        if not waitForAnimationEnding(talkEnd) then
+            break
+        end
+    end
+
+    stopAnimation(true)
+end)
+end
+
+function entityBehaviors.MESHI()
+
+local Workspace = game:GetService("Workspace")
+local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
+
+local MODEL_NAME = "PetFolDower_goat_qiu"
+local SOUND_ID = "rbxassetid://131999546232546"
+
+local SOUND_START = 3.8
+local JEFF_START = 4
+local JEFF_MOVE_DURATION = 2
+local ATTACH_OFFSET = CFrame.new(0, 0, 0)
+
+local function isValidModel(instance)
+    if not instance:IsA("Model") then
+        return false
+    end
+
+    local arm = instance:FindFirstChild("RLowerArm", true)
+
+    return arm ~= nil and arm:IsA("BasePart")
+end
+
+local function findModel()
+    local named = Workspace:FindFirstChild(MODEL_NAME, true)
+
+    if named and isValidModel(named) then
+        return named
+    end
+
+    local alternate =
+        Workspace:FindFirstChild("PetFolDower_QWQ75321", true)
+
+    if alternate and isValidModel(alternate) then
+        return alternate
+    end
+
+    for _, instance in ipairs(Workspace:GetDescendants()) do
+        if isValidModel(instance)
+            and instance:FindFirstChild("AnimSaves", true) then
+            return instance
+        end
+    end
+
+    return nil
+end
+
+local model
+local deadline = os.clock() + 30
+
+while os.clock() < deadline do
+    model = findModel()
+
+    if model then
+        break
+    end
+
+    task.wait(0.25)
+end
+
+if not model then
+    return
+end
+
+local arm = model:FindFirstChild("RLowerArm", true)
+
+if not arm or not arm:IsA("BasePart") then
+    return
+end
+
+local function playEffectSound()
+    if not model.Parent or not arm.Parent then
+        return
+    end
+
+    local sound = Instance.new("Sound")
+    sound.Name = "DreamyEffectSound"
+    sound.SoundId = SOUND_ID
+    sound.Volume = 1
+    sound.Looped = false
+    sound.Parent = arm
+
+    sound.Ended:Once(function()
+        if sound.Parent then
+            sound:Destroy()
+        end
+    end)
+
+    sound:Play()
+
+    task.delay(30, function()
+        if sound.Parent then
+            sound:Destroy()
+        end
+    end)
+end
+
+local jeffFollowConnection = nil
+local jeffAttached = false
+local jeffMoving = false
+
+local function moveJeffToArm()
+    if jeffAttached or jeffMoving then
+        return
+    end
+
+    local jeff = Workspace:FindFirstChild("JeffTheKiller")
+
+    if not jeff then
+        return
+    end
+
+    if not jeff:IsA("Model")
+        and not jeff:IsA("BasePart") then
+        return
+    end
+
+    jeffMoving = true
+
+    local function preparePart(part)
+        part.Anchored = true
+        part.CanCollide = false
+        part.CanTouch = false
+    end
+
+    if jeff:IsA("BasePart") then
+        preparePart(jeff)
+    else
+        for _, part in ipairs(jeff:GetDescendants()) do
+            if part:IsA("BasePart") then
+                preparePart(part)
+            end
+        end
+    end
+
+    local startPivot = jeff:GetPivot()
+    local startPosition = startPivot.Position
+    local startRotation = startPivot.Rotation
+
+    local elapsed = 0
+
+    while elapsed < JEFF_MOVE_DURATION
+        and jeff.Parent
+        and arm.Parent
+        and model.Parent do
+
+        local dt = RunService.Heartbeat:Wait()
+
+        elapsed = math.min(
+            elapsed + dt,
+            JEFF_MOVE_DURATION
+        )
+
+        local alpha = math.clamp(
+            elapsed / JEFF_MOVE_DURATION,
+            0,
+            1
+        )
+
+        local eased = TweenService:GetValue(
+            alpha,
+            Enum.EasingStyle.Sine,
+            Enum.EasingDirection.InOut
+        )
+
+        local target = arm.CFrame * ATTACH_OFFSET
+
+        local position = startPosition:Lerp(
+            target.Position,
+            eased
+        )
+
+        local rotation = startRotation:Lerp(
+            target.Rotation,
+            eased
+        )
+
+        local spin = CFrame.Angles(
+            0,
+            math.pi * 2 * eased,
+            0
+        )
+
+        jeff:PivotTo(
+            CFrame.new(position)
+            * rotation
+            * spin
+        )
+    end
+
+    jeffMoving = false
+
+    if not jeff.Parent or not arm.Parent or not model.Parent then
+        return
+    end
+
+    jeff:PivotTo(arm.CFrame * ATTACH_OFFSET)
+
+    jeffAttached = true
+
+    if jeffFollowConnection then
+        jeffFollowConnection:Disconnect()
+        jeffFollowConnection = nil
+    end
+
+    jeffFollowConnection = RunService.RenderStepped:Connect(function()
+        if not jeff.Parent or not arm.Parent or not model.Parent then
+            if jeffFollowConnection then
+                jeffFollowConnection:Disconnect()
+                jeffFollowConnection = nil
+            end
+
+            jeffAttached = false
+            return
+        end
+
+        jeff:PivotTo(
+            arm.CFrame * ATTACH_OFFSET
+        )
+    end)
+end
+
+task.delay(SOUND_START, function()
+    playEffectSound()
+end)
+
+task.delay(JEFF_START, function()
+    moveJeffToArm()
+end)
+end
 
 local entityConfig = {
     ["rbxassetid://453843"]  = entityBehaviors.Mush, 
@@ -4209,6 +5168,8 @@ local entityConfig = {
     ["rbxassetid://583287"]  = entityBehaviors.Scribblet, 
     ["rbxassetid://86863"]  = entityBehaviors.SLD, 
     ["rbxassetid://53843552"]  = entityBehaviors.Bite, 
+    ["rbxassetid://8324207"]  = entityBehaviors.MEshis, 
+    ["rbxassetid://8324205"]  = entityBehaviors.MESHI, 
     ["rbxassetid://2456348"]  = entityBehaviors.Happy
 }
 

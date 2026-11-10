@@ -824,8 +824,12 @@ attractToHead()
 end
 
 function entityBehaviors.FigureSpawn()
+
 local RunService = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
 local FIGURE_ASSET_ID = "rbxassetid://96598945864381"
+local TEMPLATE_NAME = "Figure1Template"
 local MAIN_GRAPH_ID = "18570699250"
 local SPECIAL_ANIMATIONS = {
 	["18540813605"] = "idle",
@@ -833,33 +837,44 @@ local SPECIAL_ANIMATIONS = {
 	["18583455040"] = "crucifix",
 	["18542418459"] = "new_anim",
 }
+
+-- Higher means less visual lag. Teleports bypass smoothing altogether.
+local FOLLOW_SMOOTHNESS = 35
+local TELEPORT_DISTANCE = 18
+local MOVEMENT_SAMPLE_INTERVAL = 0.1
+local GRAPH_PROBE_INTERVAL = 0.25
+local MAX_TIME_DRIFT = 0.20
+local TIME_DRIFT_DEADZONE = 0.015
+local MAX_SPEED_CORRECTION = 0.12
+local SPEED_CORRECTION_GAIN = 0.8
+local WEIGHT_TOLERANCE = 0.02
+
 local dead = false
 local currentRooms
 local originalFigure
 local figure1
 local sourceAnimator
 local targetAnimator
-local graphSourceTrack = nil
-local graphTargetTrack = nil
+local sourceRoot
+local targetRoot
+local targetPivotFromRoot
+local smoothedRoot
+local soundController
+local lastPosition
+local movementSpeed = 0
+local movementSampleTimer = 0
+
+local graphSourceTrack
+local graphTargetTrack
+local graphStoppedConnection
 local graphParameters = {}
 local graphDefaults = {}
+local graphLastValues = {}
+local nextGraphParameterProbe = 0
 local specialTracks = {}
 local figureConnections = {}
 local globalConnections = {}
 local bindFigure
-local findExistingFigure
-local soundController = nil
-local lastPosition = nil
-local movementSpeed = 0
-local movementSampleTimer = 0
-local MOVEMENT_SAMPLE_INTERVAL = 0.1
-local sourceFollowPart = nil
-local targetFollowPart = nil
-local sourceFollowAttachment = nil
-local targetFollowAttachment = nil
-local followPosition = nil
-local followOrientation = nil
-local graphStoppedConnection = nil
 
 local function connectTo(list, signal, callback)
 	local connection = signal:Connect(callback)
@@ -867,40 +882,17 @@ local function connectTo(list, signal, callback)
 	return connection
 end
 
-local function connectFigure(signal, callback)
-	return connectTo(figureConnections, signal, callback)
-end
-
-local function connectGlobal(signal, callback)
-	return connectTo(globalConnections, signal, callback)
-end
-
 local function disconnectList(list)
 	for _, connection in ipairs(list) do
-		pcall(function()
-			connection:Disconnect()
-		end)
+		connection:Disconnect()
 	end
 	table.clear(list)
 end
 
-local function disconnectFigureConnections()
-	disconnectList(figureConnections)
-end
-
 local function getAnimationId(track)
-	if not track then
-		return nil
-	end
-	local animation = track.Animation
-	if not animation then
-		return nil
-	end
-	local id = animation.AnimationId
-	if not id then
-		return nil
-	end
-	return id:match("%d+")
+	local animation = track and track.Animation
+	local id = animation and animation.AnimationId
+	return id and id:match("%d+") or nil
 end
 
 local function findAnimator(model)
@@ -930,19 +922,14 @@ local function getTargetAnimator(model)
 		return animator
 	end
 	local humanoid = model:FindFirstChildWhichIsA("Humanoid", true)
-	if humanoid then
-		animator = Instance.new("Animator")
-		animator.Parent = humanoid
-		return animator
-	end
-	local controller = model:FindFirstChildWhichIsA("AnimationController", true)
-	if not controller then
-		controller = Instance.new("AnimationController")
-		controller.Name = "AnimationController"
-		controller.Parent = model
+	local parent = humanoid or model:FindFirstChildWhichIsA("AnimationController", true)
+	if not parent then
+		parent = Instance.new("AnimationController")
+		parent.Name = "AnimationController"
+		parent.Parent = model
 	end
 	animator = Instance.new("Animator")
-	animator.Parent = controller
+	animator.Parent = parent
 	return animator
 end
 
@@ -956,14 +943,7 @@ local function findRootPart(model)
 	if model:IsA("Model") and model.PrimaryPart then
 		return model.PrimaryPart
 	end
-	local preferredNames = {
-		"HumanoidRootPart",
-		"RootPart",
-		"Root",
-		"LowerTorso",
-		"Torso",
-	}
-	for _, name in ipairs(preferredNames) do
+	for _, name in ipairs({"HumanoidRootPart", "RootPart", "Root", "LowerTorso", "Torso"}) do
 		local part = model:FindFirstChild(name, true)
 		if part and part:IsA("BasePart") then
 			return part
@@ -972,147 +952,47 @@ local function findRootPart(model)
 	return model:FindFirstChildWhichIsA("BasePart", true)
 end
 
-local function getObjectPivot(object)
-	if not object then
-		return nil
-	end
-	if object:IsA("Model") or object:IsA("BasePart") then
-		local success, pivot = pcall(function()
-			return object:GetPivot()
-		end)
-		if success then
-			return pivot
-		end
-	end
-	local root = findRootPart(object)
-	if root then
-		return root.CFrame
-	end
-	return nil
-end
-
-local function prepareTargetRig(model, rootPart)
-	for _, object in ipairs(model:GetDescendants()) do
-		if object:IsA("BasePart") then
-			object.Anchored = false
-			object.CanCollide = false
-			object.CanTouch = false
-			object.Massless = object ~= rootPart
-		end
-	end
-end
-
-local function destroySmoothFollow()
-	for _, object in ipairs({
-		followPosition,
-		followOrientation,
-		targetFollowAttachment,
-		sourceFollowAttachment,
-	}) do
-		if object then
-			pcall(function()
-				object:Destroy()
-			end)
-		end
-	end
-	followPosition = nil
-	followOrientation = nil
-	targetFollowAttachment = nil
-	sourceFollowAttachment = nil
-	sourceFollowPart = nil
-	targetFollowPart = nil
-end
-
-local function setupSmoothFollow(sourceModel, targetModel)
-	destroySmoothFollow()
-	local sourceRoot = findRootPart(sourceModel)
-	local targetRoot = findRootPart(targetModel)
+local function setupFollow(sourceModel, targetModel)
+	sourceRoot = findRootPart(sourceModel)
+	targetRoot = findRootPart(targetModel)
 	if not sourceRoot or not targetRoot then
 		return false
 	end
-	sourceFollowPart = sourceRoot
-	targetFollowPart = targetRoot
-	if targetModel:IsA("Model") then
-		local modelPivot = targetModel:GetPivot()
-		local rootFromPivot = modelPivot:ToObjectSpace(targetRoot.CFrame)
-		targetModel:PivotTo(sourceRoot.CFrame * rootFromPivot:Inverse())
-	else
-		targetRoot.CFrame = sourceRoot.CFrame
+
+	-- Keep the original offset between the model pivot and its chosen root.
+	local rootFromPivot = targetModel:GetPivot():ToObjectSpace(targetRoot.CFrame)
+	targetPivotFromRoot = rootFromPivot:Inverse()
+	local parts = targetModel:GetDescendants()
+	if targetModel:IsA("BasePart") then
+		table.insert(parts, targetModel)
 	end
-	prepareTargetRig(targetModel, targetRoot)
-	sourceFollowAttachment = Instance.new("Attachment")
-	sourceFollowAttachment.Name = "Figure1FollowSource"
-	sourceFollowAttachment.Parent = sourceRoot
-	targetFollowAttachment = Instance.new("Attachment")
-	targetFollowAttachment.Name = "Figure1FollowTarget"
-	targetFollowAttachment.Parent = targetRoot
-	followPosition = Instance.new("AlignPosition")
-	followPosition.Name = "Figure1SmoothPosition"
-	followPosition.Attachment0 = targetFollowAttachment
-	followPosition.Attachment1 = sourceFollowAttachment
-	followPosition.Mode = Enum.PositionAlignmentMode.TwoAttachment
-	followPosition.ApplyAtCenterOfMass = true
-	followPosition.RigidityEnabled = false
-	followPosition.Responsiveness = 65
-	followPosition.MaxForce = 1000000000
-	followPosition.MaxVelocity = 180
-	followPosition.Parent = targetRoot
-	followOrientation = Instance.new("AlignOrientation")
-	followOrientation.Name = "Figure1SmoothOrientation"
-	followOrientation.Attachment0 = targetFollowAttachment
-	followOrientation.Attachment1 = sourceFollowAttachment
-	followOrientation.Mode = Enum.OrientationAlignmentMode.TwoAttachment
-	followOrientation.RigidityEnabled = false
-	followOrientation.Responsiveness = 70
-	followOrientation.MaxTorque = 1000000000
-	followOrientation.MaxAngularVelocity = 80
-	followOrientation.Parent = targetRoot
+	for _, part in ipairs(parts) do
+		if part:IsA("BasePart") then
+			part.Anchored = part == targetRoot
+			part.CanCollide = false
+			part.CanTouch = false
+			part.Massless = part ~= targetRoot
+		end
+	end
+
+	smoothedRoot = sourceRoot.CFrame
+	targetModel:PivotTo(smoothedRoot * targetPivotFromRoot)
 	return true
 end
 
-local function getTrackWeight(track)
-	if not track then
-		return 0
-	end
-	local weight = 0
-	pcall(function()
-		weight = track.WeightCurrent
-	end)
-	return weight
-end
-
-local function isTrackVisiblyActive(track)
-	if not track then
-		return false
-	end
-	local playing = false
-	pcall(function()
-		playing = track.IsPlaying
-	end)
-	return playing and getTrackWeight(track) > 0.01
-end
-
-local function hasActiveSpecial()
-	for sourceTrack in pairs(specialTracks) do
-		if isTrackVisiblyActive(sourceTrack) then
-			return true
-		end
-	end
-	return false
-end
-
-local function updateGraphBlend()
-	if not graphTargetTrack then
+local function stepFollow(dt)
+	if not figure1 or not figure1.Parent or not sourceRoot or not sourceRoot.Parent then
 		return
 	end
-	local targetWeight = hasActiveSpecial() and 0 or 1
-	pcall(function()
-		if not graphTargetTrack.IsPlaying then
-			graphTargetTrack:Play(0.08, targetWeight, 1)
-		else
-			graphTargetTrack:AdjustWeight(targetWeight, 0.08)
-		end
-	end)
+	local goal = sourceRoot.CFrame
+	local distance = (goal.Position - smoothedRoot.Position).Magnitude
+	if distance >= TELEPORT_DISTANCE or dt > 0.25 then
+		smoothedRoot = goal
+	else
+		local alpha = 1 - math.exp(-FOLLOW_SMOOTHNESS * math.max(dt, 0))
+		smoothedRoot = smoothedRoot:Lerp(goal, alpha)
+	end
+	figure1:PivotTo(smoothedRoot * targetPivotFromRoot)
 end
 
 local function hideObject(object)
@@ -1125,13 +1005,10 @@ local function hideOriginal(model)
 	for _, object in ipairs(model:GetDescendants()) do
 		hideObject(object)
 	end
-	connectFigure(model.DescendantAdded, hideObject)
+	connectTo(figureConnections, model.DescendantAdded, hideObject)
 end
 
 local function isFootSound(sound, model)
-	if not sound or not sound:IsA("Sound") then
-		return false
-	end
 	local current = sound.Parent
 	while current and current ~= model do
 		if current.Name == "RightFoot" or current.Name == "LeftFoot" then
@@ -1143,30 +1020,29 @@ local function isFootSound(sound, model)
 end
 
 local function muteOriginal(model)
-	for _, object in ipairs(model:GetDescendants()) do
+	local function mute(object)
 		if object:IsA("Sound") and not isFootSound(object, model) then
 			object.Volume = 0
 		end
 	end
-	connectFigure(model.DescendantAdded, function(object)
-		if object:IsA("Sound") and not isFootSound(object, model) then
-			object.Volume = 0
-		end
-	end)
+	for _, object in ipairs(model:GetDescendants()) do
+		mute(object)
+	end
+	connectTo(figureConnections, model.DescendantAdded, mute)
 end
 
 local SoundController = {}
 SoundController.__index = SoundController
 
 function SoundController.new(model)
-	local self = setmetatable({}, SoundController)
-	self.model = model
-	self.mode = nil
-	self.walkTimer = 0
-	self.walkDelay = math.random(5, 10)
-	self.currentClick = nil
-	self.clickConnection = nil
-	return self
+	return setmetatable({
+		model = model,
+		mode = nil,
+		walkTimer = 0,
+		walkDelay = math.random(5, 10),
+		currentClick = nil,
+		clickConnection = nil,
+	}, SoundController)
 end
 
 function SoundController:StopClick()
@@ -1184,10 +1060,7 @@ function SoundController:StopClick()
 end
 
 function SoundController:PlayClick()
-	if self.currentClick then
-		return
-	end
-	if not self.model then
+	if self.currentClick or not self.model then
 		return
 	end
 	local head = self.model:FindFirstChild("Head", true)
@@ -1195,23 +1068,17 @@ function SoundController:PlayClick()
 		return
 	end
 	local sounds = {}
-	local click = head:FindFirstChild("Click", true)
-	local clickLow = head:FindFirstChild("ClickLow", true)
-	if click and click:IsA("Sound") then
-		table.insert(sounds, click)
-	end
-	if clickLow and clickLow:IsA("Sound") then
-		table.insert(sounds, clickLow)
+	for _, name in ipairs({"Click", "ClickLow"}) do
+		local sound = head:FindFirstChild(name, true)
+		if sound and sound:IsA("Sound") then
+			table.insert(sounds, sound)
+		end
 	end
 	if #sounds == 0 then
 		return
 	end
 	local sound = sounds[math.random(1, #sounds)]
 	self.currentClick = sound
-	pcall(function()
-		sound.TimePosition = 0
-		sound:Play()
-	end)
 	self.clickConnection = sound.Ended:Connect(function()
 		if self.currentClick == sound then
 			self.currentClick = nil
@@ -1221,26 +1088,26 @@ function SoundController:PlayClick()
 			self.clickConnection = nil
 		end
 	end)
+	local ok = pcall(function()
+		sound.TimePosition = 0
+		sound:Play()
+	end)
+	if not ok then
+		self:StopClick()
+	end
 end
 
 function SoundController:PlayGrowl()
-	if not self.model then
-		return
+	local head = self.model and self.model:FindFirstChild("Head", true)
+	local growl = head and head:FindFirstChild("Growl", true)
+	if growl and growl:IsA("Sound") then
+		pcall(function()
+			growl.TimePosition = 0
+			growl.PlaybackSpeed = 1
+			growl.Volume = 1
+			growl:Play()
+		end)
 	end
-	local head = self.model:FindFirstChild("Head", true)
-	if not head then
-		return
-	end
-	local growl = head:FindFirstChild("Growl", true)
-	if not growl or not growl:IsA("Sound") then
-		return
-	end
-	pcall(function()
-		growl.TimePosition = 0
-		growl.PlaybackSpeed = 1
-		growl.Volume = 1
-		growl:Play()
-	end)
 end
 
 function SoundController:SetMode(mode)
@@ -1262,7 +1129,7 @@ function SoundController:Step(dt)
 	if self.mode ~= "walk" then
 		return
 	end
-	self.walkTimer += dt
+	self.walkTimer = self.walkTimer + dt
 	if self.walkTimer >= self.walkDelay then
 		self.walkTimer = 0
 		self.walkDelay = math.random(5, 10)
@@ -1284,39 +1151,93 @@ function SoundController:Destroy()
 	self.model = nil
 end
 
-local function getGraphDefaults(track)
-	if not track then
-		return {}
-	end
-	if getAnimationId(track) ~= MAIN_GRAPH_ID then
-		return {}
-	end
-	local success, defaults = pcall(function()
-		return track:GetParameterDefaults()
+local function getTrackWeight(track)
+	local ok, weight = pcall(function()
+		return track.WeightCurrent
 	end)
-	if not success or type(defaults) ~= "table" then
-		return {}
-	end
-	return defaults
+	return ok and weight or 0
 end
 
-local nextGraphParameterProbe = 0
+local function hasActiveSpecial()
+	for sourceTrack in pairs(specialTracks) do
+		-- Weight can remain visible after Stopped while a track fades out.
+		if getTrackWeight(sourceTrack) > 0.01 then
+			return true
+		end
+	end
+	return false
+end
+
+local function updateGraphBlend()
+	local target = graphTargetTrack
+	if not target then
+		return
+	end
+	local weight = hasActiveSpecial() and 0 or 1
+	pcall(function()
+		if not target.IsPlaying then
+			if graphSourceTrack then
+				target:Play(0.08, weight, graphSourceTrack.Speed)
+			end
+		elseif math.abs(target.WeightTarget - weight) > 0.001 then
+			target:AdjustWeight(weight, 0.08)
+		end
+	end)
+end
+
+local function getGraphDefaults(track)
+	if not track or getAnimationId(track) ~= MAIN_GRAPH_ID then
+		return {}
+	end
+	local ok, defaults = pcall(function()
+		return track:GetParameterDefaults()
+	end)
+	return ok and type(defaults) == "table" and defaults or {}
+end
 
 local function refreshGraphParameters()
-	if not graphSourceTrack then
+	if not graphSourceTrack or os.clock() < nextGraphParameterProbe then
 		return
 	end
-	local now = os.clock()
-	if now < nextGraphParameterProbe then
-		return
-	end
-	nextGraphParameterProbe = now + 0.25
-	local defaults = getGraphDefaults(graphSourceTrack)
-	for name, defaultValue in pairs(defaults) do
+	nextGraphParameterProbe = os.clock() + GRAPH_PROBE_INTERVAL
+	for name, defaultValue in pairs(getGraphDefaults(graphSourceTrack)) do
 		if graphDefaults[name] == nil then
 			graphDefaults[name] = defaultValue
 			table.insert(graphParameters, name)
 		end
+	end
+end
+
+-- Small drift is corrected by a gentle speed change. Only large drift causes a
+-- time jump. Loop boundaries use the shortest wrapped time difference.
+local function syncTrackPlayback(source, target)
+	local speed = source.Speed
+	if source.Looped ~= target.Looped then
+		target.Looped = source.Looped
+	end
+	if source.IsPlaying and target.IsPlaying and source.Length > 0 and target.Length > 0 then
+		local delta = source.TimePosition - target.TimePosition
+		if source.Looped and target.Looped and math.abs(source.Length - target.Length) < 0.05 then
+			local length = target.Length
+			delta = (delta + length / 2) % length - length / 2
+		end
+		if math.abs(delta) > MAX_TIME_DRIFT or (math.abs(speed) < 0.001 and math.abs(delta) > TIME_DRIFT_DEADZONE) then
+			local newTime = source.TimePosition
+			if target.Looped then
+				newTime = newTime % target.Length
+			else
+				newTime = math.clamp(newTime, 0, target.Length)
+			end
+			target.TimePosition = newTime
+		elseif math.abs(speed) >= 0.001 and math.abs(delta) > TIME_DRIFT_DEADZONE then
+			-- Never reverse a slowly playing source while correcting its phase.
+			local limit = math.min(MAX_SPEED_CORRECTION, math.abs(speed) * 0.25)
+			local correction = math.clamp(delta * SPEED_CORRECTION_GAIN, -limit, limit)
+			speed = speed + correction
+		end
+	end
+	if math.abs(target.Speed - speed) > 0.01 then
+		target:AdjustSpeed(speed)
 	end
 end
 
@@ -1327,33 +1248,21 @@ local function syncGraph()
 		return
 	end
 	refreshGraphParameters()
-	for i = 1, #graphParameters do
-		local name = graphParameters[i]
-		local success, value = pcall(source.GetParameter, source, name)
-		if success and value ~= nil then
-			pcall(target.SetParameter, target, name, value)
+	for _, name in ipairs(graphParameters) do
+		local ok, value = pcall(source.GetParameter, source, name)
+		if ok and value ~= nil and graphLastValues[name] ~= value then
+			local setOk = pcall(target.SetParameter, target, name, value)
+			if setOk then
+				graphLastValues[name] = value
+			end
 		end
 	end
-	pcall(function()
-		target.Looped = source.Looped
-	end)
-	pcall(function()
-		if math.abs(target.Speed - source.Speed) > 0.01 then
-			target:AdjustSpeed(source.Speed)
-		end
-	end)
-	pcall(function()
-		if source.Length > 0 and target.Length > 0 and math.abs(target.TimePosition - source.TimePosition) > 0.15 then
-			target.TimePosition = source.TimePosition % target.Length
-		end
-	end)
+	pcall(syncTrackPlayback, source, target)
 end
 
 local function stopGraph()
 	if graphStoppedConnection then
-		pcall(function()
-			graphStoppedConnection:Disconnect()
-		end)
+		graphStoppedConnection:Disconnect()
 		graphStoppedConnection = nil
 	end
 	if graphTargetTrack then
@@ -1366,63 +1275,62 @@ local function stopGraph()
 	graphTargetTrack = nil
 	table.clear(graphParameters)
 	table.clear(graphDefaults)
+	table.clear(graphLastValues)
+	nextGraphParameterProbe = 0
 end
 
-local function bindGraph(sourceTrack, defaults)
-	if dead then
-		return
+local function loadTrack(id, name)
+	local animation = Instance.new("Animation")
+	animation.Name = name
+	animation.AnimationId = "rbxassetid://" .. id
+	local ok, track = pcall(function()
+		return targetAnimator:LoadAnimation(animation)
+	end)
+	animation:Destroy()
+	if not ok or not track then
+		warn("[Figure1] 动画加载失败:", name, id)
+		return nil
 	end
-	if getAnimationId(sourceTrack) ~= MAIN_GRAPH_ID then
+	return track
+end
+
+local function bindGraph(sourceTrack)
+	if dead or getAnimationId(sourceTrack) ~= MAIN_GRAPH_ID then
 		return
 	end
 	if graphSourceTrack == sourceTrack and graphTargetTrack then
 		return
 	end
-	if graphTargetTrack then
-		pcall(function()
-			graphTargetTrack:Stop(0)
-			graphTargetTrack:Destroy()
-		end)
-		graphTargetTrack = nil
+	stopGraph()
+	local targetTrack = loadTrack(MAIN_GRAPH_ID, sourceTrack.Animation.Name)
+	if not targetTrack then
+		return
 	end
 	graphSourceTrack = sourceTrack
-	graphDefaults = defaults or {}
-	table.clear(graphParameters)
+	graphTargetTrack = targetTrack
+	graphDefaults = getGraphDefaults(sourceTrack)
 	for name in pairs(graphDefaults) do
 		table.insert(graphParameters, name)
 	end
-	local sourceAnimation = sourceTrack.Animation
-	if not sourceAnimation then
-		return
-	end
-	local animation = Instance.new("Animation")
-	animation.Name = sourceAnimation.Name
-	animation.AnimationId = sourceAnimation.AnimationId
-	local success, targetTrack = pcall(function()
-		return targetAnimator:LoadAnimation(animation)
-	end)
-	animation:Destroy()
-	if not success or not targetTrack then
-		return
-	end
-	graphTargetTrack = targetTrack
 	pcall(function()
 		targetTrack.Priority = sourceTrack.Priority
+		targetTrack.Looped = sourceTrack.Looped
 	end)
 	for _, name in ipairs(graphParameters) do
-		local successValue, value = pcall(sourceTrack.GetParameter, sourceTrack, name)
-		if successValue and value ~= nil then
-			pcall(targetTrack.SetParameter, targetTrack, name, value)
-		elseif graphDefaults[name] ~= nil then
-			pcall(targetTrack.SetParameter, targetTrack, name, graphDefaults[name])
+		local ok, value = pcall(sourceTrack.GetParameter, sourceTrack, name)
+		if not ok or value == nil then
+			value = graphDefaults[name]
+		end
+		if value ~= nil and pcall(targetTrack.SetParameter, targetTrack, name, value) then
+			graphLastValues[name] = value
 		end
 	end
-	targetTrack:Play(0, 1, 1)
-	if graphStoppedConnection then
-		pcall(function()
-			graphStoppedConnection:Disconnect()
-		end)
-	end
+	targetTrack:Play(0, hasActiveSpecial() and 0 or 1, sourceTrack.Speed)
+	pcall(function()
+		if targetTrack.Length > 0 then
+			targetTrack.TimePosition = sourceTrack.TimePosition % targetTrack.Length
+		end
+	end)
 	graphStoppedConnection = sourceTrack.Stopped:Connect(function()
 		if graphSourceTrack ~= sourceTrack then
 			return
@@ -1430,17 +1338,10 @@ local function bindGraph(sourceTrack, defaults)
 		graphSourceTrack = nil
 		table.clear(graphParameters)
 		table.clear(graphDefaults)
-		if graphStoppedConnection then
-			pcall(function()
-				graphStoppedConnection:Disconnect()
-			end)
-			graphStoppedConnection = nil
-		end
-		if graphTargetTrack then
-			pcall(function()
-				graphTargetTrack:AdjustSpeed(0)
-			end)
-		end
+		table.clear(graphLastValues)
+		pcall(function()
+			targetTrack:AdjustSpeed(0)
+		end)
 		updateGraphBlend()
 	end)
 	syncGraph()
@@ -1453,107 +1354,64 @@ local function removeSpecialTrack(sourceTrack)
 		return
 	end
 	specialTracks[sourceTrack] = nil
-	if info.connection then
-		pcall(function()
-			info.connection:Disconnect()
-		end)
+	if info.endedConnection then
+		info.endedConnection:Disconnect()
 	end
-	if info.targetTrack then
-		pcall(function()
-			info.targetTrack:Stop(0)
-			info.targetTrack:Destroy()
-		end)
-	end
+	pcall(function()
+		info.targetTrack:Stop(0)
+		info.targetTrack:Destroy()
+	end)
 end
 
 local function bindSpecialTrack(sourceTrack)
-	if dead then
-		return
-	end
-	if specialTracks[sourceTrack] then
+	if dead or specialTracks[sourceTrack] then
 		return
 	end
 	local id = getAnimationId(sourceTrack)
-	if not id then
+	local name = id and SPECIAL_ANIMATIONS[id]
+	if not name then
 		return
 	end
-	local specialName = SPECIAL_ANIMATIONS[id]
-	if not specialName then
-		return
-	end
-	local animation = Instance.new("Animation")
-	animation.Name = "Figure1_" .. specialName
-	animation.AnimationId = "rbxassetid://" .. id
-	local success, targetTrack = pcall(function()
-		return targetAnimator:LoadAnimation(animation)
-	end)
-	animation:Destroy()
-	if not success or not targetTrack then
-		warn("[Figure1] 特殊动画加载失败: ", specialName, " id=", id)
+	local targetTrack = loadTrack(id, "Figure1_" .. name)
+	if not targetTrack then
 		return
 	end
 	pcall(function()
 		targetTrack.Priority = sourceTrack.Priority
-	end)
-	pcall(function()
 		targetTrack.Looped = sourceTrack.Looped
 	end)
-	local speed = 1
-	pcall(function()
-		speed = sourceTrack.Speed
-	end)
-	local weight = math.max(getTrackWeight(sourceTrack), 0.001)
-	targetTrack:Play(0.03, weight, speed)
+	targetTrack:Play(0.03, math.max(getTrackWeight(sourceTrack), 0.001), sourceTrack.Speed)
 	pcall(function()
 		targetTrack.TimePosition = sourceTrack.TimePosition
 	end)
-	local stoppedConnection
-	stoppedConnection = sourceTrack.Stopped:Connect(function()
+	local info = {name = name, targetTrack = targetTrack}
+	specialTracks[sourceTrack] = info
+	info.endedConnection = sourceTrack.Ended:Connect(function()
 		removeSpecialTrack(sourceTrack)
 		updateGraphBlend()
 	end)
-	specialTracks[sourceTrack] = {
-		name = specialName,
-		id = id,
-		targetTrack = targetTrack,
-		connection = stoppedConnection
-	}
 	updateGraphBlend()
 end
 
 local function syncSpecialTracks()
 	local removeList = {}
 	for sourceTrack, info in pairs(specialTracks) do
-		local playing = false
-		pcall(function()
-			playing = sourceTrack.IsPlaying
+		local ok, playing = pcall(function()
+			return sourceTrack.IsPlaying
 		end)
-		if not playing then
+		local weight = getTrackWeight(sourceTrack)
+		if not ok or (not playing and weight <= 0.001) then
 			table.insert(removeList, sourceTrack)
 		else
-			local targetTrack = info.targetTrack
-			if targetTrack then
-				local speed = 1
-				pcall(function()
-					speed = sourceTrack.Speed
-				end)
-				pcall(function()
-					if math.abs(targetTrack.Speed - speed) > 0.01 then
-						targetTrack:AdjustSpeed(speed)
+			pcall(function()
+				local target = info.targetTrack
+				if target.IsPlaying then
+					syncTrackPlayback(sourceTrack, target)
+					if math.abs(target.WeightTarget - weight) > WEIGHT_TOLERANCE then
+						target:AdjustWeight(weight, 0.04)
 					end
-				end)
-				pcall(function()
-					targetTrack.Looped = sourceTrack.Looped
-				end)
-				pcall(function()
-					targetTrack:AdjustWeight(getTrackWeight(sourceTrack), 0.03)
-				end)
-				pcall(function()
-					if math.abs(targetTrack.TimePosition - sourceTrack.TimePosition) > 0.08 then
-						targetTrack.TimePosition = sourceTrack.TimePosition
-					end
-				end)
-			end
+				end
+			end)
 		end
 	end
 	for _, sourceTrack in ipairs(removeList) do
@@ -1563,35 +1421,21 @@ local function syncSpecialTracks()
 end
 
 local function inspectTrack(track)
-	if dead then
-		return
-	end
-	if not track or not track.Animation then
+	if dead or not track or not track.Animation then
 		return
 	end
 	local id = getAnimationId(track)
-	if not id then
-		return
-	end
 	if id == MAIN_GRAPH_ID then
-		local defaults = getGraphDefaults(track)
-		bindGraph(track, defaults)
-		return
-	end
-	if SPECIAL_ANIMATIONS[id] then
+		bindGraph(track)
+	elseif id and SPECIAL_ANIMATIONS[id] then
 		bindSpecialTrack(track)
 	end
 end
 
 local function getActiveSpecial()
-	local priorities = {
-		"crucifix",
-		"new_anim",
-		"run",
-	}
-	for _, wantedName in ipairs(priorities) do
+	for _, wantedName in ipairs({"crucifix", "new_anim", "run"}) do
 		for sourceTrack, info in pairs(specialTracks) do
-			if info.name == wantedName and isTrackVisiblyActive(sourceTrack) then
+			if info.name == wantedName and getTrackWeight(sourceTrack) > 0.01 then
 				return wantedName
 			end
 		end
@@ -1606,26 +1450,12 @@ local function updateSoundMode()
 	local special = getActiveSpecial()
 	if special == "run" then
 		soundController:SetMode("run")
-		return
-	end
-	if special then
+	elseif special then
 		soundController:SetMode(nil)
-		return
-	end
-	if movementSpeed > 0.5 then
+	elseif movementSpeed > 0.5 then
 		soundController:SetMode("walk")
 	else
 		soundController:SetMode(nil)
-	end
-end
-
-local function stopAllSpecialTracks()
-	local removeList = {}
-	for sourceTrack in pairs(specialTracks) do
-		table.insert(removeList, sourceTrack)
-	end
-	for _, sourceTrack in ipairs(removeList) do
-		removeSpecialTrack(sourceTrack)
 	end
 end
 
@@ -1634,48 +1464,58 @@ local function shutdown()
 		return
 	end
 	dead = true
-	disconnectFigureConnections()
+	disconnectList(figureConnections)
 	disconnectList(globalConnections)
-	stopAllSpecialTracks()
+	local tracks = {}
+	for sourceTrack in pairs(specialTracks) do
+		table.insert(tracks, sourceTrack)
+	end
+	for _, sourceTrack in ipairs(tracks) do
+		removeSpecialTrack(sourceTrack)
+	end
 	stopGraph()
-	destroySmoothFollow()
 	if soundController then
 		soundController:Destroy()
 		soundController = nil
 	end
 	if figure1 then
-		pcall(function()
-			figure1:Destroy()
-		end)
+		figure1:Destroy()
 		figure1 = nil
 	end
 	originalFigure = nil
 	sourceAnimator = nil
 	targetAnimator = nil
-	sourceFollowPart = nil
-	targetFollowPart = nil
-	lastPosition = nil
-	movementSpeed = 0
-	movementSampleTimer = 0
-	graphSourceTrack = nil
-	graphTargetTrack = nil
-	table.clear(graphParameters)
-	table.clear(graphDefaults)
-	table.clear(specialTracks)
+	sourceRoot = nil
+	targetRoot = nil
+	smoothedRoot = nil
 end
 
 local function loadReplacement()
-	local success, objects = pcall(function()
+	local template = ReplicatedStorage:FindFirstChild(TEMPLATE_NAME)
+	if template and (template:IsA("Model") or template:IsA("BasePart")) then
+		local ok, result = pcall(function()
+			return template:Clone()
+		end)
+		if ok and result then
+			return result
+		end
+		warn("[Figure1] Figure1Template 无法克隆，请检查 Archivable。")
+	end
+	local ok, objects = pcall(function()
 		return game:GetObjects(FIGURE_ASSET_ID)
 	end)
-	if not success or not objects or not objects[1] then
+	if not ok or not objects or not objects[1] then
+		warn("[Figure1] 替身加载失败。普通脚本请在 ReplicatedStorage 放入 Figure1Template 模型。")
 		return nil
 	end
 	local model = objects[1]
 	for i = 2, #objects do
-		pcall(function()
-			objects[i]:Destroy()
-		end)
+		objects[i]:Destroy()
+	end
+	if not model:IsA("Model") and not model:IsA("BasePart") then
+		model:Destroy()
+		warn("[Figure1] 替身资源必须是 Model 或 BasePart。")
+		return nil
 	end
 	return model
 end
@@ -1687,6 +1527,7 @@ bindFigure = function(figureRig)
 	originalFigure = figureRig
 	sourceAnimator = findAnimator(figureRig)
 	if not sourceAnimator then
+		warn("[Figure1] 原 Figure 缺少 Animator。")
 		shutdown()
 		return
 	end
@@ -1698,68 +1539,63 @@ bindFigure = function(figureRig)
 	figure1.Name = "Figure1"
 	figure1.Parent = workspace
 	targetAnimator = getTargetAnimator(figure1)
-	if not targetAnimator then
+	if not setupFollow(figureRig, figure1) then
+		warn("[Figure1] 无法找到原 Figure 或替身的根部 BasePart。")
 		shutdown()
 		return
 	end
 	hideOriginal(figureRig)
 	muteOriginal(figureRig)
-	local initialPivot = getObjectPivot(figureRig)
-	if initialPivot then
-		figure1:PivotTo(initialPivot)
-	end
-	if not setupSmoothFollow(figureRig, figure1) then
-		warn("[Figure1] 无法找到原 Figure 或 Figure1 的根部 BasePart，平滑跟随初始化失败。")
-		shutdown()
-		return
-	end
 	disconnectList(globalConnections)
-	lastPosition = sourceFollowPart.Position
+	lastPosition = sourceRoot.Position
 	soundController = SoundController.new(figure1)
+
 	for _, track in ipairs(targetAnimator:GetPlayingAnimationTracks()) do
 		pcall(function()
 			track:Stop(0)
 		end)
 	end
-	local success, tracks = pcall(function()
+	connectTo(figureConnections, sourceAnimator.AnimationPlayed, inspectTrack)
+	local ok, tracks = pcall(function()
 		return sourceAnimator:GetPlayingAnimationTracks()
 	end)
-	if success then
+	if ok then
 		for _, track in ipairs(tracks) do
 			inspectTrack(track)
 		end
 	end
-	connectFigure(sourceAnimator.AnimationPlayed, function(track)
-		inspectTrack(track)
-	end)
-	connectFigure(figureRig.Destroying, shutdown)
-	connectFigure(figureRig.AncestryChanged, function()
+
+	connectTo(figureConnections, figureRig.Destroying, shutdown)
+	connectTo(figureConnections, figureRig.AncestryChanged, function()
 		if not figureRig:IsDescendantOf(workspace) then
 			shutdown()
 		end
 	end)
-	connectFigure(RunService.PreAnimation, function()
-		if dead then
-			return
+	connectTo(figureConnections, RunService.PreAnimation, function()
+		if not dead then
+			syncGraph()
+			syncSpecialTracks()
 		end
-		syncGraph()
-		syncSpecialTracks()
 	end)
-	connectFigure(RunService.Heartbeat, function(dt)
+	-- PreRender is client-only. On a server, use Heartbeat as a fallback.
+	local followEvent = RunService:IsClient() and RunService.PreRender or RunService.Heartbeat
+	connectTo(figureConnections, followEvent, function(dt)
+		if not dead then
+			stepFollow(dt)
+		end
+	end)
+	connectTo(figureConnections, RunService.Heartbeat, function(dt)
 		if dead then
 			return
 		end
-		if not originalFigure or not originalFigure.Parent then
+		if not originalFigure or not originalFigure.Parent or not figure1 or not figure1.Parent
+			or not sourceRoot or not sourceRoot.Parent or not targetRoot or not targetRoot.Parent then
 			shutdown()
 			return
 		end
-		if not figure1 or not figure1.Parent or not sourceFollowPart or not sourceFollowPart.Parent then
-			shutdown()
-			return
-		end
-		movementSampleTimer += dt
+		movementSampleTimer = movementSampleTimer + dt
 		if movementSampleTimer >= MOVEMENT_SAMPLE_INTERVAL then
-			local position = sourceFollowPart.Position
+			local position = sourceRoot.Position
 			if lastPosition then
 				movementSpeed = (position - lastPosition).Magnitude / movementSampleTimer
 			end
@@ -1767,39 +1603,23 @@ bindFigure = function(figureRig)
 			movementSampleTimer = 0
 		end
 		updateSoundMode()
-		if soundController then
-			soundController:Step(dt)
-		end
+		soundController:Step(dt)
 	end)
 end
 
-findExistingFigure = function()
-	for _, object in ipairs(currentRooms:GetDescendants()) do
-		if object.Name == "FigureRig" and (object:IsA("Model") or object:IsA("Folder")) then
-			return object
-		end
-	end
-	return nil
-end
-
 currentRooms = workspace:WaitForChild("CurrentRooms")
-
-connectGlobal(currentRooms.DescendantAdded, function(object)
-	if dead or originalFigure then
-		return
+connectTo(globalConnections, currentRooms.DescendantAdded, function(object)
+	if not dead and not originalFigure and object.Name == "FigureRig"
+		and (object:IsA("Model") or object:IsA("Folder")) then
+		bindFigure(object)
 	end
-	if object.Name ~= "FigureRig" then
-		return
-	end
-	if not object:IsA("Model") and not object:IsA("Folder") then
-		return
-	end
-	bindFigure(object)
 end)
 
-local existingFigure = findExistingFigure()
-if existingFigure then
-	bindFigure(existingFigure)
+for _, object in ipairs(currentRooms:GetDescendants()) do
+	if object.Name == "FigureRig" and (object:IsA("Model") or object:IsA("Folder")) then
+		bindFigure(object)
+		break
+	end
 end
 end
 
