@@ -13925,7 +13925,6 @@ coroutine.wrap(function()
 end)()
 
 end
-
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 
@@ -14008,7 +14007,7 @@ local function createMultiMonsterUI()
     text.TextWrapped = true
 
     pcall(function()
-        text.FontFace = Font.new("rbxassetid://11702779517")
+        text.FontFace = Font.new("rbxassetid://12187368843")
     end)
 
     text.Parent = gui
@@ -14019,7 +14018,7 @@ local function createMultiMonsterUI()
     timerText.Position = UDim2.new(0.5, 0, -0.15, 0)
     timerText.Size = UDim2.new(0, 420, 0, 60)
     timerText.BackgroundTransparency = 1
-    timerText.Text = "Time : 304"
+    timerText.Text = "Time : 315"
     timerText.TextColor3 = Color3.fromRGB(255, 20, 20)
     timerText.TextStrokeColor3 = Color3.fromRGB(35, 0, 0)
     timerText.TextStrokeTransparency = 0.05
@@ -14027,7 +14026,7 @@ local function createMultiMonsterUI()
     timerText.Visible = false
 
     pcall(function()
-        timerText.FontFace = Font.new("rbxassetid://11702779517")
+        timerText.FontFace = Font.new("rbxassetid://12187368843")
     end)
 
     timerText.Parent = gui
@@ -14190,87 +14189,106 @@ local function dropTimer(timerText)
     timerText.Position = UDim2.new(0.5, 0, 0.08, 0)
 end
 
-local function startMultiMonsterTimer(timerText, timerLines)
+local function startMultiMonsterTimer(timerText, timerLines, timerState, sounds)
     if not timerText then
         return
     end
 
+    timerText.Text = "Time : 315"
     dropTimer(timerText)
 
-    task.spawn(function()
-        for timeLeft = 315, 0, -1 do
-            if not timerText or not timerText.Parent then
-                return
+    local lastTimeLeft = 315
+
+    while timerText.Parent and not timerState.finished do
+
+        local durations = {}
+        local totalDuration = 0
+        for i, sound in ipairs(sounds) do
+            local duration = sound.TimeLength
+            if duration <= 0 then
+                duration = 1
             end
-
-            local normalText = "Time : " .. timeLeft
-            local secondStart = os.clock()
-
-            while os.clock() - secondStart < 1 do
-                if not timerText.Parent then
-                    return
-                end
-
-                timerText.Position = UDim2.new(
-                    0.5,
-                    math.random(-2, 2),
-                    0.08,
-                    math.random(-1, 1)
-                )
-
-                if math.random() < 0.3 then
-                    timerText.Text = corruptText(normalText, 0.1)
-                else
-                    timerText.Text = normalText
-                end
-
-                if math.random() < 0.1 then
-                    timerText.TextTransparency = math.random(10, 40) / 100
-                else
-                    timerText.TextTransparency = 0
-                end
-
-                if math.random() < 0.07 then
-                    timerText.TextColor3 = Color3.fromRGB(255, 90, 90)
-                else
-                    timerText.TextColor3 = Color3.fromRGB(255, 20, 20)
-                end
-
-                for _, line in ipairs(timerLines or {}) do
-                    line.Visible = math.random() < 0.12
-
-                    if line.Visible then
-                        line.Position = UDim2.new(
-                            0.5,
-                            math.random(-180, 180),
-                            0.08,
-                            math.random(-18, 18)
-                        )
-
-                        line.Size = UDim2.new(
-                            0,
-                            math.random(40, 170),
-                            0,
-                            math.random(1, 2)
-                        )
-                    end
-                end
-
-                task.wait(math.random(4, 9) / 100)
-            end
+            durations[i] = duration
+            totalDuration += duration
         end
 
-        if timerText and timerText.Parent then
-            timerText.Text = "Time : 0"
-            timerText.Position = UDim2.new(0.5, 0, 0.08, 0)
+        local currentStage = math.clamp(timerState.stage, 1, #sounds)
+        local elapsed = 0
+        for i = 1, currentStage - 1 do
+            elapsed += durations[i]
+        end
+
+        local activeSound = sounds[currentStage]
+        local progressInStage = 0
+        if activeSound.TimeLength > 0 then
+            progressInStage = math.clamp(activeSound.TimePosition / activeSound.TimeLength, 0, 1)
+        end
+        elapsed += durations[currentStage] * progressInStage
+
+        local timeLeft = math.max(1, math.ceil(315 * (1 - elapsed / totalDuration)))
+        lastTimeLeft = math.min(lastTimeLeft, timeLeft)
+        local normalText = "Time : " .. lastTimeLeft
+
+        timerText.Position = UDim2.new(
+            0.5,
+            math.random(-2, 2),
+            0.08,
+            math.random(-1, 1)
+        )
+
+        if math.random() < 0.3 then
+            timerText.Text = corruptText(normalText, 0.1)
+        else
+            timerText.Text = normalText
+        end
+
+        if math.random() < 0.1 then
+            timerText.TextTransparency = math.random(10, 40) / 100
+        else
             timerText.TextTransparency = 0
+        end
+
+        if math.random() < 0.07 then
+            timerText.TextColor3 = Color3.fromRGB(255, 90, 90)
+        else
             timerText.TextColor3 = Color3.fromRGB(255, 20, 20)
         end
 
         for _, line in ipairs(timerLines or {}) do
+            line.Visible = math.random() < 0.12
+
+            if line.Visible then
+                line.Position = UDim2.new(
+                    0.5,
+                    math.random(-180, 180),
+                    0.08,
+                    math.random(-18, 18)
+                )
+
+                line.Size = UDim2.new(
+                    0,
+                    math.random(40, 170),
+                    0,
+                    math.random(1, 2)
+                )
+            end
+        end
+
+        task.wait(math.random(4, 9) / 100)
+    end
+
+    if timerText.Parent and timerState.finished then
+        timerText.Text = "Time : 0"
+        timerText.Position = UDim2.new(0.5, 0, 0.08, 0)
+        timerText.TextTransparency = 0
+        timerText.TextColor3 = Color3.fromRGB(255, 20, 20)
+    end
+
+    for _, line in ipairs(timerLines or {}) do
+        if line.Parent then
             line.Visible = false
         end
-    end)
+    end
 end
 
 local function playSoundAndWait(sound)
@@ -14308,12 +14326,12 @@ function entityBehaviors.MultiMonster()
 
     task.spawn(function()
         local sentences = {
-            "你好？",
-            "你玩的开心吗.",
-            "这是第几次遇见你了?",
-            "我会伤害到你吗?",
-            "玩的开心,拜托了.",
-            "开玩笑的啦,请注意哦。"
+            "Hello?",
+            "Are you having fun?",
+            "How many times have we met?",
+            "Will I hurt you?",
+            "Have fun, please.",
+            "Just kidding. Be careful."
         }
 
         local timeout = 0
@@ -14356,22 +14374,74 @@ function entityBehaviors.MultiMonster()
         line.Visible = false
     end
 
+    local extraSentences = {
+        "This is interesting",
+        "It hasn't been long since we last met, right?",
+        "I will always watch over you",
+        "This is all awesome",
+        "Are you looking for me again?",
+        "The way you die",
+        "Should you be happy?",
+        "You'll never forget me"
+    }
+
+    task.spawn(function()
+        while gui and gui.Parent and glitchText and glitchText.Parent do
+            task.wait(math.random(10, 30))
+            if not gui.Parent or not glitchText.Parent then
+                break
+            end
+
+            local sentence = extraSentences[math.random(1, #extraSentences)]
+            showGlitchSentence(glitchText, glitchLines, sentence, math.random(3, 5))
+
+            if glitchText.Parent then
+                glitchText.Text = ""
+                glitchText.Visible = false
+            end
+            for _, line in ipairs(glitchLines or {}) do
+                if line.Parent then
+                    line.Visible = false
+                end
+            end
+        end
+    end)
+
+    local timerState = { stage = 1, finished = false }
+    local timerSounds = { M2, M2, M3, M3, M4, M4 }
+
     M2:Stop()
     M2.TimePosition = 0
     M2:Play()
 
     task.spawn(function()
-        startMultiMonsterTimer(timerText, timerLines)
+        startMultiMonsterTimer(timerText, timerLines, timerState, timerSounds)
     end)
 
     M2.Ended:Wait()
 
+    timerState.stage = 2
     playSoundAndWait(M2)
 
+    timerState.stage = 3
     playSoundAndWait(M3)
+    timerState.stage = 4
     playSoundAndWait(M3)
 
+    timerState.stage = 5
     playSoundAndWait(M4)
+
+    timerState.stage = 6
+    playSoundAndWait(M4)
+
+    timerState.finished = true
+    if timerText and timerText.Parent then
+        timerText.Text = "Time : 0"
+        timerText.Position = UDim2.new(0.5, 0, 0.08, 0)
+        timerText.TextTransparency = 0
+        timerText.TextColor3 = Color3.fromRGB(255, 20, 20)
+    end
+    task.wait()
 
     if gui then
         gui:Destroy()
