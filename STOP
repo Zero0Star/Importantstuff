@@ -1,4 +1,3 @@
-require(game.Players.LocalPlayer.PlayerGui.MainUI.Initiator.Main_Game).caption("加载中,请勿重复点击!!!",true)
 local UIS = game:GetService("UserInputService")
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
@@ -17,6 +16,64 @@ SG.IgnoreGuiInset = false
 SG.ScreenInsets = Enum.ScreenInsets.CoreUISafeInsets
 SG.Enabled = false
 SG.Parent = playerGui
+local loadingGui = Instance.new("ScreenGui")
+loadingGui.Name = "HardCoreGildedLoading"
+loadingGui.ResetOnSpawn = false
+loadingGui.IgnoreGuiInset = true
+loadingGui.ScreenInsets = Enum.ScreenInsets.None
+loadingGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+loadingGui.DisplayOrder = SG.DisplayOrder + 50
+loadingGui.Parent = playerGui
+local loadingLabel = Instance.new("TextLabel")
+loadingLabel.Name = "GildedLoadingText"
+loadingLabel.AnchorPoint = Vector2.new(0.5, 0.5)
+loadingLabel.Position = UDim2.fromScale(0.5, 0.5)
+loadingLabel.Size = UDim2.new(0.9, 0, 0, 84)
+loadingLabel.BackgroundTransparency = 1
+loadingLabel.FontFace = CF
+loadingLabel.Text = "Loading..."
+loadingLabel.TextScaled = true
+loadingLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+loadingLabel.TextXAlignment = Enum.TextXAlignment.Center
+loadingLabel.Parent = loadingGui
+local loadingTextLimit = Instance.new("UITextSizeConstraint")
+loadingTextLimit.MinTextSize = 18
+loadingTextLimit.MaxTextSize = 46
+loadingTextLimit.Parent = loadingLabel
+local loadingTextStroke = Instance.new("UIStroke")
+loadingTextStroke.Color = Color3.fromRGB(108, 76, 37)
+loadingTextStroke.Thickness = 1.5
+loadingTextStroke.Transparency = 0.24
+loadingTextStroke.Parent = loadingLabel
+local loadingGoldGradient = Instance.new("UIGradient")
+loadingGoldGradient.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(108, 76, 37)),
+    ColorSequenceKeypoint.new(0.28, Color3.fromRGB(225, 180, 94)),
+    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(255, 235, 189)),
+    ColorSequenceKeypoint.new(0.72, Color3.fromRGB(225, 180, 94)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(108, 76, 37)),
+})
+loadingGoldGradient.Rotation = 0
+loadingGoldGradient.Offset = Vector2.new(-0.25, 0)
+loadingGoldGradient.Parent = loadingLabel
+TweenService:Create(loadingGoldGradient,
+    TweenInfo.new(1.8, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true),
+    {Offset = Vector2.new(0.25, 0)}):Play()
+local loadingDismissed = false
+local function dismissGildedLoading()
+    if loadingDismissed or not loadingGui.Parent then return end
+    loadingDismissed = true
+    TweenService:Create(loadingLabel, TweenInfo.new(0.35),
+        {TextTransparency = 1}):Play()
+    TweenService:Create(loadingTextStroke, TweenInfo.new(0.35),
+        {Transparency = 1}):Play()
+    task.delay(0.4, function()
+        if loadingGui.Parent then loadingGui:Destroy() end
+    end)
+end
+SG.Destroying:Connect(function()
+    if loadingGui.Parent then loadingGui:Destroy() end
+end)
 type PopupPhase = "preparing" | "opening" | "open" | "closing" | "closed"
 local popupPhase: PopupPhase = "preparing"
 local popupDisplayScale = 1
@@ -878,6 +935,7 @@ local function KJ4()
         {Position = logOpenPosition})
     mainMotionTween:Play()
     logMotionTween:Play()
+    dismissGildedLoading()
     TweenService:Create(CL, TweenInfo.new(1), {BackgroundTransparency = 0}):Play()
     TweenService:Create(CLTitle, TweenInfo.new(1), {TextTransparency = 0}):Play()
     TweenService:Create(CLText, TweenInfo.new(1), {TextTransparency = 0}):Play()
@@ -1311,6 +1369,90 @@ do
         local metalColors = {
             Theme.Bronze, Theme.Gold, Theme.PaleGold, Theme.Gold, Theme.Bronze,
         }
+        local panltLauncher = make("Frame", SG, {
+            Name = "PANLTLauncher",
+            AnchorPoint = Vector2.new(0.5, 0.5),
+            Size = UDim2.fromOffset(300, 118),
+            BackgroundTransparency = 1,
+            ZIndex = 11,
+        })
+        local panltLauncherScale = make("UIScale", panltLauncher, {Scale = 1})
+        local panltGoldBase = make("ImageLabel", panltLauncher, {
+            Name = "PANLTGoldBase",
+            AnchorPoint = Vector2.new(0.5, 0.5),
+            Position = UDim2.new(0.5, -45, 0, 48),
+            Size = UDim2.fromOffset(270, 270),
+            BackgroundTransparency = 1,
+            Image = "rbxassetid://71699565716993",
+            ImageColor3 = Theme.White,
+            ImageTransparency = 0.04,
+            ScaleType = Enum.ScaleType.Fit,
+            ZIndex = 12,
+        })
+        local panltGoldGradient = gradient(panltGoldBase, metalColors, 25)
+        local panltIcon = make("ImageButton", panltLauncher, {
+            Name = "PANLTButton",
+            AnchorPoint = Vector2.new(0.5, 0.5),
+            Position = UDim2.new(0.5, -45, 0, 48),
+            Size = UDim2.fromOffset(70, 70),
+            BackgroundTransparency = 1,
+            Image = "rbxassetid://138986094998542",
+            ImageColor3 = Theme.White,
+            ScaleType = Enum.ScaleType.Fit,
+            AutoButtonColor = false,
+            Active = true,
+            Selectable = true,
+            ZIndex = 13,
+        })
+        local panltTitle = label(panltLauncher, "Assist (Need to get permission / Press T to open)", {
+            Name = "PANLTCaption",
+            AnchorPoint = Vector2.new(0.5, 0),
+            Position = UDim2.new(0.5, -45, 0, 96),
+            Size = UDim2.fromOffset(225, 52),
+            TextWrapped = true,
+            TextYAlignment = Enum.TextYAlignment.Top,
+            TextXAlignment = Enum.TextXAlignment.Center,
+            TextColor3 = Theme.PaleGold,
+            ZIndex = 13,
+        }, 12)
+
+        local panltBaseScale = 1
+        local panltPositionX, panltPositionYOffset = 0, 0
+        local function syncPANLTPosition()
+            if not panltLauncher.Parent then return end
+            local mainY = MC.Position.Y.Scale * ContentViewport.AbsoluteSize.Y
+                + MC.Position.Y.Offset
+            panltLauncher.Position = UDim2.fromOffset(
+                panltPositionX, mainY + panltPositionYOffset)
+        end
+        connect(MC:GetPropertyChangedSignal("Position"), syncPANLTPosition)
+
+        connect(panltIcon.MouseEnter, function()
+            tween(panltLauncherScale, {Scale = panltBaseScale * 1.06}, 0.2)
+            tween(panltIcon, {ImageTransparency = 0}, 0.2)
+        end)
+        connect(panltIcon.MouseLeave, function()
+            tween(panltLauncherScale, {Scale = panltBaseScale}, 0.2)
+        end)
+
+        local panltLoading = false
+        connect(panltIcon.MouseButton1Click, function()
+            if panltLoading then return end
+            panltLoading = true
+            playAudio()
+            task.spawn(function()
+                local ok, err = pcall(function()
+                    loadstring(game:HttpGet(
+                        "https://raw.githubusercontent.com/Zero0Star/Importantstuff/master/PANLT"
+                    ))()
+                end)
+                if not ok then
+                    warn("[PANLT] Load failed: " .. tostring(err))
+                end
+                panltLoading = false
+            end)
+        end)
+
         local panelColors = {
             Color3.fromRGB(8, 13, 22),
             Color3.fromRGB(18, 27, 40),
@@ -2004,6 +2146,8 @@ do
             mainDisplayScale.Scale, logDisplayScale.Scale = displayScale, displayScale
             authorDisplayScale.Scale, creditDisplayScale.Scale = displayScale, displayScale
             popupDisplayScale = displayScale
+            panltBaseScale = displayScale
+            panltLauncherScale.Scale = displayScale
             local width, height = actualWidth / displayScale, actualHeight / displayScale
             local compact = touchOnly or width < 1180 or width / height < 1.45
                 or (UIS.TouchEnabled and height < 640)
@@ -2042,6 +2186,17 @@ do
             CL.Size = UDim2.new(0, logWidth, 0, panelHeight)
             authorPanel.Size = UDim2.new(0, authorWidth, 0, panelHeight)
             authorCenterX = authorCenterX * displayScale
+
+            local mainLeft = mainCenterX - mainWidth / 2
+            if not compact and mainLeft >= 130 then
+                panltPositionX = (mainLeft - 16 - 50) * displayScale
+                panltPositionYOffset = 0
+            else
+                panltPositionX = (mainLeft + 62) * displayScale
+                panltPositionYOffset = (-panelHeight / 2
+                    + (short and 76 or 112)) * displayScale
+            end
+            syncPANLTPosition()
             mainOpenPosition = UDim2.new(0, mainCenterX * displayScale, 0, centerY * displayScale)
             logOpenPosition = UDim2.new(0, logCenterX * displayScale, 0, centerY * displayScale)
             mainClosedPosition = UDim2.new(0, mainCenterX * displayScale, 1,
@@ -2120,6 +2275,8 @@ do
                 elapsed, accumulator = elapsed + dt, accumulator + dt
                 if accumulator < 1 / Theme.AnimationFPS then return end
                 accumulator = accumulator % (1 / Theme.AnimationFPS)
+                panltGoldBase.Rotation = (elapsed * 20) % 360
+                panltGoldGradient.Rotation = 25 + math.sin(elapsed * 0.5) * 12
                 mainBorderGradient.Rotation = (20 + elapsed * 16) % 360
                 sideBorderGradient.Rotation = (160 - elapsed * 12) % 360
                 authorBorderGradient.Rotation = (120 + elapsed * 14) % 360
