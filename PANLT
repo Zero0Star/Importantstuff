@@ -2656,6 +2656,156 @@ featureUI.scanButton = scanButton
 featureStop.scan = stopScanner
 end
 
+do
+local godButton, godDescription, godHeading, godBorder = actionBox(
+    toolsScroll, "06 / PROTECTION", "God Mode",
+    "The damage mechanism in some script modes doesn’t work on the server or certain monsters."
+)
+local godGradient = godButton:FindFirstChildOfClass("UIGradient")
+local godOriginalGradient = godGradient.Color
+local godBorderGradient = godBorder:FindFirstChildOfClass("UIGradient")
+local godEnabled = false
+local godToken = 0
+local characterConnection = nil
+local remoteConnection = nil
+local trackedHumanoids = {}
+local renamedRemotes = setmetatable({}, {__mode = "k"})
+local maxProtectedHealth = 1000000000
+
+local function setGodButtonState(enabled)
+    godGradient.Color = enabled and ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(11, 69, 44)),
+        ColorSequenceKeypoint.new(0.44, Color3.fromRGB(37, 151, 77)),
+        ColorSequenceKeypoint.new(0.72, Color3.fromRGB(22, 116, 65)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(9, 65, 42)),
+    }) or godOriginalGradient
+    godButton.BackgroundTransparency = enabled and 0.01 or 0.11
+    godBorderGradient.Enabled = not enabled
+    godBorder.Color = enabled and Color3.fromRGB(116, 255, 150) or C.gold
+    tween(godBorder, {Thickness = enabled and 2.9 or 2}, 0.2)
+    for _, child in ipairs(godButton:GetChildren()) do
+        if child:IsA("TextLabel") then
+            local gold = child:FindFirstChildOfClass("UIGradient")
+            if gold then gold.Enabled = not enabled end
+            child.TextColor3 = enabled and Color3.fromRGB(230, 255, 230) or C.white
+        end
+    end
+end
+
+local function renameKillRemote(obj)
+    if not godEnabled or not obj:IsA("RemoteEvent") or obj.Name ~= "Kill" then
+        return
+    end
+    local renamed = pcall(function()
+        obj.Name = "KillDEBUGNO"
+    end)
+    if renamed and obj.Name == "KillDEBUGNO" then
+        renamedRemotes[obj] = true
+    end
+end
+
+local function protectHumanoid(humanoid)
+    if not godEnabled or trackedHumanoids[humanoid] then return end
+    local record = {
+        maxHealth = humanoid.MaxHealth,
+        health = humanoid.Health,
+    }
+    trackedHumanoids[humanoid] = record
+
+    local function maintainHealth()
+        if not godEnabled or trackedHumanoids[humanoid] ~= record or not humanoid.Parent then
+            return
+        end
+        if humanoid.MaxHealth ~= maxProtectedHealth then
+            humanoid.MaxHealth = maxProtectedHealth
+        end
+        if humanoid.Health > 0 and humanoid.Health < maxProtectedHealth then
+            humanoid.Health = maxProtectedHealth
+        end
+    end
+
+    record.healthConnection = humanoid.HealthChanged:Connect(maintainHealth)
+    record.maxHealthConnection = humanoid:GetPropertyChangedSignal("MaxHealth"):Connect(maintainHealth)
+    humanoid.MaxHealth = maxProtectedHealth
+    if humanoid.Health > 0 then
+        humanoid.Health = maxProtectedHealth
+    end
+end
+
+local function protectCharacter(character, token)
+    task.spawn(function()
+        local humanoid = character:FindFirstChildOfClass("Humanoid") or character:WaitForChild("Humanoid", 10)
+        if not godEnabled or token ~= godToken or character ~= player.Character then
+            return
+        end
+        if humanoid then protectHumanoid(humanoid) end
+    end)
+end
+
+local function disableGodMode()
+    godToken = godToken + 1
+    godEnabled = false
+    if characterConnection then
+        characterConnection:Disconnect()
+        characterConnection = nil
+    end
+    if remoteConnection then
+        remoteConnection:Disconnect()
+        remoteConnection = nil
+    end
+
+    for humanoid, record in pairs(trackedHumanoids) do
+        if record.healthConnection then record.healthConnection:Disconnect() end
+        if record.maxHealthConnection then record.maxHealthConnection:Disconnect() end
+        if humanoid.Parent then
+            pcall(function()
+                humanoid.MaxHealth = record.maxHealth
+                if humanoid.Health > 0 then
+                    humanoid.Health = math.clamp(record.health, 0, math.max(record.maxHealth, 0))
+                end
+            end)
+        end
+    end
+    table.clear(trackedHumanoids)
+
+    for remote in pairs(renamedRemotes) do
+        if remote.Parent and remote.Name == "KillDEBUGNO" then
+            pcall(function() remote.Name = "Kill" end)
+        end
+    end
+    table.clear(renamedRemotes)
+    setGodButtonState(false)
+end
+
+connect(godButton.Activated, function()
+    clickSound()
+    if godEnabled then
+        disableGodMode()
+        notify("GOD MODE / Disabled", true)
+        return
+    end
+
+    godEnabled = true
+    godToken = godToken + 1
+    local token = godToken
+    setGodButtonState(true)
+    remoteConnection = ReplicatedStorage.ChildAdded:Connect(renameKillRemote)
+    for _, remote in ipairs(ReplicatedStorage:GetChildren()) do
+        renameKillRemote(remote)
+    end
+    characterConnection = player.CharacterAdded:Connect(function(character)
+        protectCharacter(character, token)
+    end)
+    if player.Character then
+        protectCharacter(player.Character, token)
+    end
+    notify("GOD MODE / Enabled", true)
+end)
+
+featureUI.godButton = godButton
+featureStop.god = disableGodMode
+end
+
 sectionHeader(pages[3], "INTERFACE CONTROL", "03 / VISUAL OPTIONS")
 local motionButton = actionBox(pages[3], "01 / FX", "Motion: ON", "Toggle ambient particles, image drift and animated scanning.")
 local restoreButton = actionBox(pages[3], "02 / LIGHTING", "Restore Lighting", "Disable Night Vision and restore saved lighting values and effects.")
@@ -2844,7 +2994,7 @@ local function layout()
         local g = 11
         local ch = math.max(70, math.min(158, (available - g) / 2))
         local toolHeight = math.max(92, math.min(142, math.floor((pageH - 94) / 2)))
-        local toolButtons = {dexButton, nvButton, featureUI.flyButton, featureUI.healthButton, featureUI.scanButton}
+        local toolButtons = {dexButton, nvButton, featureUI.flyButton, featureUI.healthButton, featureUI.scanButton, featureUI.godButton}
         for i, btn in ipairs(toolButtons) do
             btn.Position = UDim2.fromOffset(2, 6 + (i - 1) * (toolHeight + g))
             btn.Size = UDim2.fromOffset(pageW - 9, toolHeight)
@@ -2876,7 +3026,7 @@ local function layout()
         local toolColumns = 2
         local toolWidth = (pageW - g * (toolColumns - 1) - 8) / toolColumns
         local toolHeight = math.max(122, math.min(160, math.floor((pageH - 112 - 2 * g) / 3)))
-        local toolButtons = {dexButton, nvButton, featureUI.flyButton, featureUI.healthButton, featureUI.scanButton}
+        local toolButtons = {dexButton, nvButton, featureUI.flyButton, featureUI.healthButton, featureUI.scanButton, featureUI.godButton}
         for i, btn in ipairs(toolButtons) do
             local col = (i - 1) % toolColumns
             local row = math.floor((i - 1) / toolColumns)
@@ -3087,6 +3237,7 @@ local function cleanup()
     featureStop.reminder()
     featureStop.health()
     featureStop.scan()
+    featureStop.god()
     for _, c in ipairs(connections) do c:Disconnect() end
     for _, t in pairs(activeTweens) do t:Cancel() end
     table.clear(connections)
