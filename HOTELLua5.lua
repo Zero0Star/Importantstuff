@@ -13743,7 +13743,6 @@ pcall(main)
 pcall(cleanup)
 _G.__DozerStage11Running = nil
 end
-end
 local entityConfig = {
     ["rbxassetid://453843"]  = entityBehaviors.Mush, 
     ["rbxassetid://4538455"]  = entityBehaviors.Z19, 
