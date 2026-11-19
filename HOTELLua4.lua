@@ -10218,7 +10218,6 @@ local function __GetHardCoreSound(soundName)
 end
 
 local RunService = game:GetService("RunService")
-local SoundService = game:GetService("SoundService")
 local Lighting = game:GetService("Lighting")
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
@@ -10314,9 +10313,6 @@ local function cleanup()
 	local hMimic = Workspace:FindFirstChild("HaltMimic")
 	if hMimic then hMimic:Destroy() end
 
-	local muffledGroup = SoundService:FindFirstChild("MuffledGroup")
-	if muffledGroup then muffledGroup:Destroy() end
-
 	if model and model.Parent then model:Destroy() end
 	if s2_gui and s2_gui.Parent then s2_gui:Destroy() end
 	if s2_breaking then s2_breaking:Stop(); s2_breaking:Destroy() end
@@ -10357,54 +10353,6 @@ haltMimicSound.Name = "HaltMimic"
 haltMimicSound.RollOffMaxDistance = 1000000000
 haltMimicSound.Volume = 0.4
 haltMimicSound:Play()
-
-local group = SoundService:FindFirstChild("MuffledGroup")
-if not group then
-	group = Instance.new("SoundGroup")
-	group.Name = "MuffledGroup"
-	group.Parent = SoundService
-end
-
-local eq = group:FindFirstChild("Muffle")
-if not eq then
-	eq = Instance.new("EqualizerSoundEffect")
-	eq.Name = "Muffle"
-	eq.Parent = group
-end
-eq.HighGain = -25
-eq.MidGain = -10
-eq.LowGain = 0
-
-local __ExcludedHardCoreSoundNames = {
-	M1 = true,
-	M2 = true,
-	M3 = true,
-	M4 = true
-}
-
-local function Apply(sound)
-	if not sound:IsA("Sound") then
-		return
-	end
-
-	if sound.Name == "HaltMimic" then
-		return
-	end
-
-	-- HardCoreSound 文件夹中的 M1、M2、M3、M4 不加入 MuffledGroup
-	if sound:IsDescendantOf(__HardCoreSoundFolder)
-		and __ExcludedHardCoreSoundNames[sound.Name] then
-		return
-	end
-
-	sound.SoundGroup = group
-end
-
-for _, v in ipairs(Workspace:GetDescendants()) do
-	Apply(v)
-end
-local workspaceDescConn = Workspace.DescendantAdded:Connect(Apply)
-table.insert(connections, workspaceDescConn)
 
 local t = 0
 local yawRange = math.rad(35)

@@ -13348,6 +13348,8 @@ if selectedWardrobe then
 		end
 	end)
 end
+end
+
 function entityBehaviors.Dozer()
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
