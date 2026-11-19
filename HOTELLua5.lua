@@ -8597,16 +8597,16 @@ local function AddReverb(obj)
 		return
 	end
 
-	if obj:IsA("Sound") and not obj:GetAttribute("Reverbed") then
+	if obj:IsA("Sound")
+		and not obj:IsDescendantOf(HardCoreSoundFolder)
+		and not obj:GetAttribute("Reverbed") then
 		if SilenceOriginalSoundSpeeds[obj] == nil then
 			SilenceOriginalSoundSpeeds[obj] = obj.PlaybackSpeed
 		end
 
 		obj:SetAttribute("Reverbed", true)
 
-		if obj ~= blayes or obj ~= blano or obj.Name ~= "Boso" or obj.Name ~= "NopeMoskx" then
-			obj.PlaybackSpeed = 0.9
-		end
+		obj.PlaybackSpeed = 0.9
 
 		local Reverb = Instance.new("ReverbSoundEffect")
 		Reverb.Name = "StrongReverb"
@@ -8649,7 +8649,7 @@ local function DisableSilenceReverb()
 	end
 
 	for sound, originalSpeed in pairs(SilenceOriginalSoundSpeeds) do
-		if sound and sound.Parent then
+		if sound then
 			pcall(function()
 				sound.PlaybackSpeed = originalSpeed
 			end)
@@ -8659,7 +8659,8 @@ local function DisableSilenceReverb()
 
 	for _, Obj in ipairs(game:GetDescendants()) do
 		if Obj:IsA("ReverbSoundEffect")
-			and Obj.Name == "StrongReverb" then
+			and Obj.Name == "StrongReverb"
+			and not Obj:IsDescendantOf(HardCoreSoundFolder) then
 
 			Obj.Enabled = false
 		end
@@ -9539,7 +9540,6 @@ local HeardColorTween
 
 local function StartHeartbeatMinigame()
 	StopCameraShake()
-	DisableSilenceReverb()
 
 	local StartupHeartbeat = CloneHardCoreSound("SilenceHeartbeat")
 	StartupHeartbeat.Name = "SilenceHeartbeat"
