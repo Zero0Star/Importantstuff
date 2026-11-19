@@ -15200,41 +15200,48 @@ local function ClearCaptions()
     ActiveCountdownGui = nil
 end
 
-local function WatchCharacterEnd(character)
+LocalPlayer.CharacterAdded:Connect(function()
     task.spawn(function()
-        local humanoid = character:FindFirstChildOfClass("Humanoid") or character:WaitForChild("Humanoid", 10)
-        if humanoid then
-            if humanoid.Health <= 0 then
-                ClearCaptions()
+        if ThemeEnded then
+            return
+        end
+
+        local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+        local NewMainUI = PlayerGui:WaitForChild("MainUI", 30)
+        local NewMainFrame = NewMainUI and NewMainUI:WaitForChild("MainFrame", 30)
+
+        if ThemeEnded or not NewMainFrame then
+            return
+        end
+
+        if caption and caption.Parent and caption:IsDescendantOf(NewMainFrame) then
+            return
+        end
+
+        local Success, NewObjects = pcall(function()
+            return game:GetObjects(getcustomasset(file))
+        end)
+
+        if not Success or not NewObjects then
+            return
+        end
+
+        for _, Object in ipairs(NewObjects) do
+            if ThemeEnded then
+                Object:Destroy()
             else
-                humanoid.Died:Connect(ClearCaptions)
+                Object.Parent = NewMainFrame
+                if Object:IsA("TextLabel") then
+                    if not caption or not caption.Parent or not caption:IsDescendantOf(NewMainFrame) then
+                        caption = Object
+                        caption.Text = ""
+                        caption.Visible = false
+                    end
+                end
             end
         end
     end)
-end
-
-if LocalPlayer.Character then
-    WatchCharacterEnd(LocalPlayer.Character)
-end
-
-LocalPlayer.CharacterAdded:Connect(WatchCharacterEnd)
-
-local GameFinishedValue = ReplicatedStorage:WaitForChild("GameData"):FindFirstChild("GameFinished")
-if GameFinishedValue and GameFinishedValue:IsA("ValueBase") then
-    local function IsGameFinished(value)
-        return value == true or value == 1 or tostring(value):lower() == "true"
-    end
-
-    if IsGameFinished(GameFinishedValue.Value) then
-        ClearCaptions()
-    end
-
-    GameFinishedValue.Changed:Connect(function(value)
-        if IsGameFinished(value) then
-            ClearCaptions()
-        end
-    end)
-end
+end)
 
 if SyncRandomInt(1, 2) == 1 then
     task.spawn(function()
@@ -15335,7 +15342,7 @@ task.spawn(function()
 end)
 
 local function WaitForFirstMusicPhaseEnd()
-	while not ThemeEnded and getgenv().multi do
+	while not ThemeEnded do
 		local RoomReady = (tonumber(LatestRoom.Value) or 0) >= FirstMusicPhaseTargetRoom
 		local TimeReady = os.clock() - FirstMusicPhaseStartedAt >= 45
 
@@ -15378,6 +15385,7 @@ task.spawn(function()
 	local Gui = Instance.new("ScreenGui")
 	Gui.Parent = LP.PlayerGui
 	Gui.IgnoreGuiInset = true
+	Gui.ResetOnSpawn = false
 	ActiveCountdownGui = Gui
 
 	local Text = Instance.new("TextLabel")
