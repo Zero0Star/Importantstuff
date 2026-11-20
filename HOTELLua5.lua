@@ -7656,7 +7656,11 @@ task.spawn(function()
     
     finished = true
     
-    if finished then
+    if dmggui and dmggui.Parent then
+        dmggui:Destroy()
+    end
+
+    if starttodie and starttodie.Parent then
         starttodie:Destroy()
     end
 
