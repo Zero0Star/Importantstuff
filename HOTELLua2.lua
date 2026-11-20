@@ -3662,6 +3662,80 @@ local hardcoreInit = Instance.new("BoolValue")
 hardcoreInit.Name = "hardcoreInit"
 hardcoreInit.Parent = Workspace
 
+do
+    local storage = game:GetService("ReplicatedStorage")
+    local misc = storage:FindFirstChild("Misc") or storage:WaitForChild("Misc", 10)
+
+    if misc then
+        local original = misc:FindFirstChild("Eyes")
+
+        local loaded, replacement = pcall(function()
+            local objects = game:GetObjects("rbxassetid://122905899863934")
+            local asset = objects and objects[1]
+
+            if not asset then
+                error("asset returned no instances")
+            end
+
+            local source
+
+            if asset.Name == "Eyes" and (asset:IsA("Folder") or asset:IsA("Model")) then
+                source = asset
+            else
+                for _, descendant in ipairs(asset:GetDescendants()) do
+                    if descendant.Name == "Eyes"
+                        and (descendant:IsA("Folder") or descendant:IsA("Model")) then
+                        source = descendant
+                        break
+                    end
+                end
+            end
+
+            if not source then
+                asset:Destroy()
+                error("asset does not contain an Eyes folder or model")
+            end
+
+            source.Parent = nil
+
+            if source ~= asset then
+                asset:Destroy()
+            end
+
+            if source:IsA("Folder") then
+                source.Name = "Eyes"
+                return source
+            end
+
+            local folder = Instance.new("Folder")
+            folder.Name = "Eyes"
+
+            for _, child in ipairs(source:GetChildren()) do
+                child.Parent = folder
+            end
+
+            source:Destroy()
+            return folder
+        end)
+
+        if loaded then
+            replacement.Name = "Eyes"
+
+            local installed = pcall(function()
+                replacement.Parent = misc
+            end)
+
+            if installed then
+                if original and original ~= replacement then
+                    original:Destroy()
+                end
+            else
+                replacement:Destroy()
+            end
+        end
+    end
+end
+
 local audioLoaded = false
 local isReplacingSeek = false
 local currentCustomSeek = nil
