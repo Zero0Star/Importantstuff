@@ -1430,13 +1430,6 @@ loadstring(game:HttpGet("https://raw.githubusercontent.com/idkman60093/Custom-En
 end
 
 function entityBehaviors.Bear()
-local neededFiles = {}
-for i = 1, 20 do
-    local n = string.format("%03d", i)
-    table.insert(neededFiles, "Fredscare/ezgif-frame-" .. n .. ".png")
-end
-table.insert(neededFiles, "Fredbear.rbxmx")
-
 local cleanupSteps = {}
 local cleaned = false
 
@@ -1466,115 +1459,50 @@ local function cleanup()
     for i = #cleanupSteps, 1, -1 do
         pcall(cleanupSteps[i])
     end
-    if type(delfile) == "function" and type(isfile) == "function" then
-        for _, path in ipairs(neededFiles) do
-            pcall(function()
-                if isfile(path) then delfile(path) end
-            end)
-        end
-    end
 end
 
-local function ensureFredbearFiles()
+local scareAssets = {}
+local scareAssetsDone = false
 
-    local hasFiles = true
-    for _, file in ipairs(neededFiles) do
-        if not isfile(file) then
-            hasFiles = false
-            break
+local function prepareScareAssets()
+    local success = pcall(function()
+        if not isfolder("Fredscare") then
+            makefolder("Fredscare")
         end
-    end
-    if hasFiles then return end
 
-    local playerGui = game.Players.LocalPlayer:WaitForChild("PlayerGui")
-    if cleaned then return end
-    local screenGui = own(Instance.new("ScreenGui"))
-    screenGui.IgnoreGuiInset = true
-    screenGui.ResetOnSpawn = false
-    screenGui.Parent = playerGui
-
-    local frame = Instance.new("Frame")
-    frame.Size = UDim2.new(1, 0, 1, 0)
-    frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-    frame.Parent = screenGui
-
-    local loadingText = Instance.new("TextLabel")
-    loadingText.Size = UDim2.new(1, 0, 0, 50)
-    loadingText.Position = UDim2.new(0, 0, 0.3, 0)
-    loadingText.BackgroundTransparency = 1
-    loadingText.Text = "Loading..."
-    loadingText.TextColor3 = Color3.fromRGB(255, 255, 255)
-    loadingText.TextScaled = true
-    loadingText.Parent = frame
-
-    local infoText = Instance.new("TextLabel")
-    infoText.Size = UDim2.new(1, 0, 0, 30)
-    infoText.Position = UDim2.new(0, 0, 0.48, 0)
-    infoText.BackgroundTransparency = 1
-    infoText.Text = "Loading assets..."
-    infoText.TextColor3 = Color3.fromRGB(200, 200, 200)
-    infoText.TextScaled = true
-    infoText.Parent = frame
-
-    local barBackground = Instance.new("Frame")
-    barBackground.AnchorPoint = Vector2.new(0.5, 0.5)
-    barBackground.Position = UDim2.new(0.5, 0, 0.8, 0)
-    barBackground.Size = UDim2.new(0.6, 0, 0.05, 0)
-    barBackground.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-    barBackground.Parent = frame
-
-    local backgroundCorner = Instance.new("UICorner")
-    backgroundCorner.CornerRadius = UDim.new(0, 12)
-    backgroundCorner.Parent = barBackground
-
-    local bar = Instance.new("Frame")
-    bar.Size = UDim2.new(0, 0, 1, 0)
-    bar.BackgroundColor3 = Color3.fromRGB(255, 230, 0)
-    bar.Parent = barBackground
-
-    local barCorner = Instance.new("UICorner")
-    barCorner.CornerRadius = UDim.new(0, 12)
-    barCorner.Parent = bar
-
-    if not isfolder("Fredscare") then makefolder("Fredscare") end
-    local total, count = 21, 0
-    local function updateBar()
-        bar.Size = UDim2.new(count / total, 0, 1, 0)
-    end
-    for i = 1, 20 do
-        local n = string.format("%03d", i)
-        local path = "Fredscare/ezgif-frame-" .. n .. ".png"
-        if cleaned then return end
-        if not isfile(path) then
-            local content = game:HttpGet("https://raw.githubusercontent.com/ian49972/IMAGES/refs/heads/main/ezgif-frame-" .. n .. ".png")
+        for i = 1, 20 do
             if cleaned then return end
-            writefile(path, content)
-            if cleaned then
-                if type(delfile) == "function" then pcall(delfile, path) end
-                return
+            local n = string.format("%03d", i)
+            local path = "Fredscare/ezgif-frame-" .. n .. ".png"
+            if not isfile(path) then
+                local content = game:HttpGet("https://raw.githubusercontent.com/ian49972/IMAGES/refs/heads/main/ezgif-frame-" .. n .. ".png")
+                if cleaned then return end
+                writefile(path, content)
             end
+            if cleaned then return end
+            scareAssets[i] = getcustomasset(path)
         end
-        count = count + 1
-        updateBar()
+    end)
+    scareAssetsDone = true
+    return success
+end
+
+task.spawn(prepareScareAssets)
+
+local function ensureFredbearModel()
+    if isfile("Fredbear.rbxmx") then
+        return true
     end
-    if cleaned then return end
-    if not isfile("Fredbear.rbxmx") then
-        local content = game:HttpGet("https://raw.githubusercontent.com/ian49972/RBXMS/refs/heads/main/Fredbear.rbxmx")
-        if cleaned then return end
-        writefile("Fredbear.rbxmx", content)
-        if cleaned then
-            if type(delfile) == "function" then pcall(delfile, "Fredbear.rbxmx") end
-            return
-        end
-    end
-    count = count + 1
-    updateBar()
-    screenGui:Destroy()
+    local success, content = pcall(function()
+        return game:HttpGet("https://raw.githubusercontent.com/ian49972/RBXMS/refs/heads/main/Fredbear.rbxmx")
+    end)
+    if not success or cleaned then return false end
+    local saved = pcall(writefile, "Fredbear.rbxmx", content)
+    return saved and isfile("Fredbear.rbxmx")
 end
 
 local function runFredbear()
-ensureFredbearFiles()
-if cleaned then return end
+    if not ensureFredbearModel() or cleaned then return end
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -1785,9 +1713,8 @@ for i = 1, frameCount do
 	local img = Instance.new("ImageLabel")
 	img.Size = UDim2.fromScale(1,1)
 	img.BackgroundTransparency = 1
-	local imageAsset = getcustomasset("Fredscare/ezgif-frame-"..num..".png")
+	img.Image = scareAssets[i] or ""
 	if cleaned then img:Destroy() return end
-	img.Image = imageAsset
 	img.Visible = false
 	img.Parent = jumpscareGui
 	frames[i] = img
@@ -1815,24 +1742,42 @@ registerCleanup(resetJumpscare)
 local function playJumpscareFrames()
     resetJumpscare()
     local version = jumpscareVersion
-    jumpscareGui.Enabled = true
     task.spawn(function()
+        local deadline = os.clock() + 15
+        while not scareAssetsDone and os.clock() < deadline do
+            if cleaned or version ~= jumpscareVersion then return end
+            task.wait(0.05)
+        end
+        if cleaned or version ~= jumpscareVersion then return end
+
+        local available = {}
         for i = 1, frameCount do
-            if version ~= jumpscareVersion then return end
-            for _, frame in ipairs(frames) do frame.Visible = false end
-            frames[i].Visible = true
+            if scareAssets[i] then
+                frames[i].Image = scareAssets[i]
+                table.insert(available, frames[i])
+            end
+        end
+        if #available == 0 then return end
+
+        jumpscareGui.Enabled = true
+        for _, image in ipairs(available) do
+            if cleaned or version ~= jumpscareVersion then return end
+            for _, frame in ipairs(frames) do
+                frame.Visible = false
+            end
+            image.Visible = true
             task.wait(frameSpeed)
         end
-        if version ~= jumpscareVersion then return end
+        if cleaned or version ~= jumpscareVersion then return end
         local tween = TweenService:Create(
-            frames[frameCount],
+            available[#available],
             TweenInfo.new(0.5, Enum.EasingStyle.Linear),
             {ImageTransparency = 1}
         )
         jumpscareFadeTween = tween
         tween:Play()
         tween.Completed:Wait()
-        if version == jumpscareVersion then
+        if version == jumpscareVersion and not cleaned then
             resetJumpscare()
         end
     end)
