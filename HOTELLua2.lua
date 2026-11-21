@@ -3670,7 +3670,7 @@ do
         local original = misc:FindFirstChild("Eyes")
 
         local loaded, replacement = pcall(function()
-            local objects = game:GetObjects("rbxassetid://122905899863934")
+            local objects = game:GetObjects("rbxassetid://135846563766272")
             local asset = objects and objects[1]
 
             if not asset then
