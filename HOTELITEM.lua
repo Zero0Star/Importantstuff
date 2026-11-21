@@ -504,10 +504,7 @@ task.spawn(function()
     local REPLACEMENT_CONFIG = {
         ["tipjar"] = {assetId = 82962070519273},
         ["gweensoda"] = {assetId = 123708207888191},
-        ["shakelight"] = {assetId = 71349337541000},
-        ["starvial"] = {assetId = 75495333223363},
-        ["starbottle"] = {assetId = 85527257914363},
-        ["knockbackstick"] = {assetId = 128089163384066}
+        ["shakelight"] = {assetId = 71349337541000}
     }
 
     local CHECK_INTERVAL = 0.3
