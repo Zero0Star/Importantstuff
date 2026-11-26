@@ -3634,25 +3634,10 @@ end)
 end
 
 function entityBehaviors.bsripper()
-
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
 local RunService = game:GetService("RunService")
-local TweenService = game:GetService("TweenService")
-
-local targetAudioUrl = "https://github.com/Sosnen/Ping-s-Dumbass-projects-/raw/main/Here%20i%20come%20but%20WHAT%20THE%20FUCK.mp3"
-local newFileName = "SeekMusicNew"
-local volume = 5
-
-local CUSTOM_SEEK_MODEL_ID = "rbxassetid://131251673824274"
-
-local ANIMATION_DELAY = 0.8
-local DASH_DISTANCE = 40
-local DASH_DURATION = 1
-local FOOTSTEP_VOLUME = 0.3
-local STOP_SPEED_THRESHOLD = 0.5
-local STOP_DETECTION_TIME = 1
 
 if Workspace:FindFirstChild("hardcoreInit") then
     return
@@ -3674,7 +3659,7 @@ do
             local asset = objects and objects[1]
 
             if not asset then
-                error("asset returned no instances")
+                return nil
             end
 
             local source
@@ -3693,7 +3678,7 @@ do
 
             if not source then
                 asset:Destroy()
-                error("asset does not contain an Eyes folder or model")
+                return nil
             end
 
             source.Parent = nil
@@ -3718,7 +3703,7 @@ do
             return folder
         end)
 
-        if loaded then
+        if loaded and replacement then
             replacement.Name = "Eyes"
 
             local installed = pcall(function()
@@ -3736,898 +3721,491 @@ do
     end
 end
 
-local audioLoaded = false
-local isReplacingSeek = false
-local currentCustomSeek = nil
-local latestSeekClone = nil
+local LocalPlayer = Players.LocalPlayer
+local GameData = ReplicatedStorage:WaitForChild("GameData")
+local LatestRoom = GameData:WaitForChild("LatestRoom")
+
+local targetAudioUrl = "https://github.com/Sosnen/Ping-s-Dumbass-projects-/raw/main/Here%20i%20come%20but%20WHAT%20THE%20FUCK.mp3"
+local newFileName = "SeekMusicNew"
+local volume = 5
+
+local CUSTOM_SEEK_MODEL_ID = "rbxassetid://113994392427255"
+local CUSTOM_SEEK_RUN_ANIMATION_ID = "rbxassetid://10729087054"
+local CUSTOM_SEEK_RAISE_ANIMATION_ID = "rbxassetid://10954733643"
+
 local seekMusicAsset = nil
-local currentAnim = nil
+local audioLoaded = false
+local audioLoading = false
 
-local soundNames = {
-    "FarFootsteps",
-    "NearFootsteps",
-    "Scream"
-}
+local currentCustomSeek = nil
+local currentContext = nil
 
-local EasingStyleMap = {
-    [Enum.PoseEasingStyle.Linear] = Enum.EasingStyle.Linear,
-    [Enum.PoseEasingStyle.Bounce] = Enum.EasingStyle.Bounce,
-    [Enum.PoseEasingStyle.Cubic] = Enum.EasingStyle.Cubic,
-    [Enum.PoseEasingStyle.Elastic] = Enum.EasingStyle.Elastic
-}
+local pendingSeeks = setmetatable({}, {__mode = "k"})
+local processedSeeks = setmetatable({}, {__mode = "k"})
 
-local EasingDirectionMap = {
-    [Enum.PoseEasingDirection.In] = Enum.EasingDirection.In,
-    [Enum.PoseEasingDirection.Out] = Enum.EasingDirection.Out,
-    [Enum.PoseEasingDirection.InOut] = Enum.EasingDirection.InOut
-}
+local function applySeekMusic(sound)
+    if not sound or not sound:IsA("Sound") then
+        return
+    end
+
+    if sound.Name ~= "SeekMusic" then
+        return
+    end
+
+    if not sound.Parent then
+        return
+    end
+
+    if sound.Parent.Name ~= "SeekMovingNewClone" then
+        return
+    end
+
+    sound.Volume = volume
+
+    if audioLoaded and seekMusicAsset then
+        sound.SoundId = seekMusicAsset
+    end
+end
 
 local function loadAudioFromGitHub()
+    if audioLoading or audioLoaded then
+        return
+    end
+
+    audioLoading = true
+
     task.spawn(function()
-        pcall(function()
+        local success, result = pcall(function()
             local audioData = game:HttpGet(targetAudioUrl)
+
             writefile(newFileName .. ".mp3", audioData)
 
-            seekMusicAsset = (getcustomasset or getsynasset)(
-                newFileName .. ".mp3"
-            )
+            local assetLoader = getcustomasset or getsynasset
 
-            audioLoaded = true
+            return assetLoader(newFileName .. ".mp3")
         end)
+
+        audioLoading = false
+
+        if success and result then
+            seekMusicAsset = result
+            audioLoaded = true
+
+            for _, descendant in ipairs(Workspace:GetDescendants()) do
+                applySeekMusic(descendant)
+            end
+        end
     end)
 end
 
 local function replaceSeekMusic()
     Workspace.DescendantAdded:Connect(function(descendant)
-        if not descendant:IsA("Sound") then
-            return
+        if descendant:IsA("Sound") then
+            applySeekMusic(descendant)
+
+            if descendant.Name == "SeekMusic"
+                and descendant.Parent
+                and descendant.Parent.Name == "SeekMovingNewClone" then
+
+                if not audioLoaded then
+                    loadAudioFromGitHub()
+                end
+            end
         end
+    end)
 
-        if not descendant.Parent then
-            return
-        end
+    for _, descendant in ipairs(Workspace:GetDescendants()) do
+        applySeekMusic(descendant)
+    end
+end
 
-        if descendant.Name ~= "SeekMusic"
-            or descendant.Parent.Name ~= "SeekMovingNewClone" then
-            return
-        end
-
-        descendant.Volume = volume
-
-        if seekMusicAsset and audioLoaded then
-            descendant.SoundId = seekMusicAsset
-        else
-            pcall(function()
-                local audioData = game:HttpGet(targetAudioUrl)
-                writefile(newFileName .. ".mp3", audioData)
-
-                local customAsset = (getcustomasset or getsynasset)(
-                    newFileName .. ".mp3"
-                )
-
-                descendant.SoundId = customAsset
-            end)
-        end
+local function showChaseCaption()
+    pcall(function()
+        require(
+            LocalPlayer.PlayerGui.MainUI.Initiator.Main_Game
+        ).caption("使用你的体力!!!", true)
     end)
 end
 
-local function configureRootSounds(model)
-    local root = model:FindFirstChild("Root", true)
-
-    if not root then
+local function playCustomSeekSounds(context)
+    if not context.active then
         return
     end
 
-    for _, name in ipairs({
-        "FarFootsteps",
-        "NearFootsteps"
-    }) do
-        local sound = root:FindFirstChild(name)
+    local customSeekModel = context.customSeek
 
-        if sound and sound:IsA("Sound") then
-            sound.Volume = FOOTSTEP_VOLUME
-        end
-    end
-end
-
-local function playRootSounds(model, chaseFinished)
-    if not model or not model.Parent or chaseFinished then
+    if not customSeekModel or not customSeekModel.Parent then
         return
     end
 
-    local root = model:FindFirstChild("Root", true)
+    local figure = customSeekModel:FindFirstChild("Figure")
 
-    if not root then
+    if not figure then
         return
     end
 
-    for _, name in ipairs(soundNames) do
-        local sound = root:FindFirstChild(name)
-
-        if sound and sound:IsA("Sound") then
-            if name == "NearFootsteps"
-                or name == "FarFootsteps" then
-                sound.Volume = FOOTSTEP_VOLUME
-            end
-
-            sound:Play()
+    for _, child in ipairs(figure:GetChildren()) do
+        if child:IsA("Sound") then
+            child:Play()
         end
     end
 end
 
-local function stopAllModelSounds(model)
-    if not model then
+local function cleanupOldSeekModel(context)
+    if not context then
         return
     end
 
-    for _, instance in ipairs(model:GetDescendants()) do
-        if instance:IsA("Sound") then
-            instance:Stop()
-        end
-    end
-end
-
-local function stopCurrentAnimation()
-    if currentAnim then
-        currentAnim:Stop()
-        currentAnim = nil
-    end
-end
-
-local function PlayKeyframeSequence(Model, KeyframeSequence, Looped)
-    local keyframes = KeyframeSequence:GetKeyframes()
-
-    table.sort(keyframes, function(a, b)
-        return a.Time < b.Time
-    end)
-
-    if #keyframes == 0 then
-        return nil
+    context.active = false
+    if context.roomConnection then
+        context.roomConnection:Disconnect()
+        context.roomConnection = nil
     end
 
-    local jointMap = {}
-    local poseTracks = {}
-
-    for _, instance in ipairs(Model:GetDescendants()) do
-        if instance:IsA("Motor6D") then
-            if instance.Part0 and instance.Part1 then
-                local key =
-                    instance.Part0.Name .. "\0" .. instance.Part1.Name
-
-                jointMap[key] = instance
-            end
-        elseif instance:IsA("Bone") then
-            if instance.Parent then
-                local key =
-                    instance.Parent.Name .. "\0" .. instance.Name
-
-                if not jointMap[key] then
-                    jointMap[key] = instance
-                end
-            end
-        end
+    if context.followConnection then
+        context.followConnection:Disconnect()
+        context.followConnection = nil
     end
 
-    for _, keyframe in ipairs(keyframes) do
-        for _, pose in ipairs(keyframe:GetDescendants()) do
-            if pose:IsA("Pose") and pose.Weight > 0 then
-                local parent = pose.Parent
-
-                if parent and parent:IsA("Pose") then
-                    local key =
-                        parent.Name .. "\0" .. pose.Name
-
-                    local joint = jointMap[key]
-
-                    if joint then
-                        if not poseTracks[joint] then
-                            poseTracks[joint] = {}
-                        end
-
-                        table.insert(poseTracks[joint], {
-                            Time = keyframe.Time,
-                            CFrame = pose.CFrame,
-                            Style = pose.EasingStyle,
-                            Direction = pose.EasingDirection
-                        })
-                    end
-                end
-            end
-        end
+    if context.ancestryConnection then
+        context.ancestryConnection:Disconnect()
+        context.ancestryConnection = nil
     end
 
-    for _, frames in pairs(poseTracks) do
-        table.sort(frames, function(a, b)
-            return a.Time < b.Time
-        end)
+    if context.customSeek and context.customSeek.Parent then
+        context.customSeek:Destroy()
     end
 
-    local duration = keyframes[#keyframes].Time
-    local elapsed = 0
-    local connection = nil
-
-    local state = {
-        Running = true
-    }
-
-    local function getPoseAtTime(frames, timePosition)
-        if #frames == 0 then
-            return CFrame.new()
-        end
-
-        if timePosition <= frames[1].Time then
-            return frames[1].CFrame
-        end
-
-        if timePosition >= frames[#frames].Time then
-            return frames[#frames].CFrame
-        end
-
-        for i = 1, #frames - 1 do
-            local first = frames[i]
-            local second = frames[i + 1]
-
-            if timePosition >= first.Time
-                and timePosition <= second.Time then
-
-                local segmentDuration =
-                    second.Time - first.Time
-
-                if segmentDuration <= 0 then
-                    return second.CFrame
-                end
-
-                local alpha =
-                    (timePosition - first.Time) / segmentDuration
-
-                if second.Style == Enum.PoseEasingStyle.Constant then
-                    alpha = alpha >= 1 and 1 or 0
-                else
-                    local style =
-                        EasingStyleMap[second.Style]
-                        or Enum.EasingStyle.Linear
-
-                    local direction =
-                        EasingDirectionMap[second.Direction]
-                        or Enum.EasingDirection.InOut
-
-                    alpha = TweenService:GetValue(
-                        math.clamp(alpha, 0, 1),
-                        style,
-                        direction
-                    )
-                end
-
-                return first.CFrame:Lerp(second.CFrame, alpha)
-            end
-        end
-
-        return frames[#frames].CFrame
-    end
-
-    local function applyPose(timePosition)
-        for joint, frames in pairs(poseTracks) do
-            if joint and joint.Parent then
-                joint.Transform =
-                    getPoseAtTime(frames, timePosition)
-            end
-        end
-    end
-
-    applyPose(0)
-
-    if duration <= 0 then
-        state.Running = false
-    else
-        connection = RunService.PreSimulation:Connect(function(dt)
-            if not state.Running then
-                return
-            end
-
-            if not Model or not Model.Parent then
-                state.Running = false
-
-                if connection then
-                    connection:Disconnect()
-                    connection = nil
-                end
-
-                return
-            end
-
-            elapsed = elapsed + dt
-
-            local timePosition
-
-            if Looped then
-                timePosition = elapsed % duration
-            else
-                timePosition = math.min(elapsed, duration)
-            end
-
-            applyPose(timePosition)
-
-            if not Looped and elapsed >= duration then
-                state.Running = false
-
-                if connection then
-                    connection:Disconnect()
-                    connection = nil
-                end
-            end
-        end)
-    end
-
-    function state:Stop()
-        self.Running = false
-
-        if connection then
-            connection:Disconnect()
-            connection = nil
-        end
-
-        for joint in pairs(poseTracks) do
-            if joint and joint.Parent then
-                joint.Transform = CFrame.new()
-            end
-        end
-    end
-
-    function state:Wait()
-        while self.Running and Model and Model.Parent do
-            task.wait()
-        end
-    end
-
-    return state
-end
-
-local function PlayModelAnimation(Model, Animator, AnimationObject, Looped)
-    stopCurrentAnimation()
-
-    if not AnimationObject then
-        return nil
-    end
-
-    if AnimationObject:IsA("KeyframeSequence") then
-        currentAnim = PlayKeyframeSequence(
-            Model,
-            AnimationObject,
-            Looped
-        )
-
-        return currentAnim
-    end
-
-    if AnimationObject:IsA("Animation") then
-        if not Animator then
-            return nil
-        end
-
-        local success, track = pcall(function()
-            return Animator:LoadAnimation(AnimationObject)
-        end)
-
-        if not success or not track then
-            return nil
-        end
-
-        track.Looped = Looped
-
-        local state = {
-            Running = true
-        }
-
-        local stoppedConnection
-
-        stoppedConnection = track.Stopped:Connect(function()
-            state.Running = false
-        end)
-
-        function state:Stop()
-            self.Running = false
-
-            if stoppedConnection then
-                stoppedConnection:Disconnect()
-                stoppedConnection = nil
-            end
-
-            track:Stop(0)
-            track:Destroy()
-        end
-
-        function state:Wait()
-            while self.Running and Model and Model.Parent do
-                task.wait()
-            end
-        end
-
-        currentAnim = state
-        track:Play(0)
-
-        return state
-    end
-
-    return nil
-end
-
-local function cleanupOldSeekModel()
-    stopCurrentAnimation()
-
-    if currentCustomSeek then
-        stopAllModelSounds(currentCustomSeek)
-
-        if currentCustomSeek.Parent then
-            currentCustomSeek:Destroy()
-        end
-
+    if currentCustomSeek == context.customSeek then
         currentCustomSeek = nil
     end
+
+    if currentContext == context then
+        currentContext = nil
+    end
 end
 
-local function replaceSeekModel()
-    local function checkAndReplace()
-        if isReplacingSeek then
+local function playSeekAnimations(context)
+    task.spawn(function()
+        local customRig = context.customRig
+
+        if not customRig then
             return
         end
 
-        isReplacingSeek = true
-
-        task.wait(3.5)
-
-        local originalSeek =
-            Workspace:FindFirstChild("SeekMovingNewClone")
-
-        if not originalSeek then
-            isReplacingSeek = false
+        local animController = customRig:FindFirstChildOfClass("AnimationController")
+            or customRig:FindFirstChildOfClass("Humanoid")
+        if not animController or not context.active then
             return
         end
 
-        if latestSeekClone == originalSeek then
-            isReplacingSeek = false
-            return
-        end
+        local animator = animController:FindFirstChildOfClass("Animator")
+            or animController
 
-        local originalRig =
-            originalSeek:FindFirstChild("SeekRig")
+        pcall(function()
+            local raiseAnimation = Instance.new("Animation")
+            raiseAnimation.AnimationId = CUSTOM_SEEK_RAISE_ANIMATION_ID
+            raiseAnimation.Parent = customRig
 
-        if not originalRig then
-            isReplacingSeek = false
-            return
-        end
-
-        cleanupOldSeekModel()
-
-        local customSeekModel
-
-        local success = pcall(function()
-            customSeekModel =
-                game:GetObjects(CUSTOM_SEEK_MODEL_ID)[1]
-        end)
-
-        if not success or not customSeekModel then
-            isReplacingSeek = false
-            return
-        end
-
-        customSeekModel.Name = "seek2"
-
-        local customRig =
-            customSeekModel:FindFirstChild("SeekRig")
-            or customSeekModel
-
-        local customRoot =
-            customSeekModel:FindFirstChild("Root", true)
-
-        local humanoid =
-            customSeekModel:FindFirstChildWhichIsA(
-                "Humanoid",
-                true
-            )
-
-        local animSaves =
-            customSeekModel:FindFirstChild("AnimSaves", true)
-
-        if not customRoot
-            or not customRoot:IsA("BasePart")
-            or not humanoid
-            or not animSaves then
-
-            customSeekModel:Destroy()
-            isReplacingSeek = false
-            return
-        end
-
-        local automaticSave =
-            animSaves:FindFirstChild("Automatic Save")
-
-        local runNew =
-            animSaves:FindFirstChild("run new")
-
-        if not automaticSave or not runNew then
-            customSeekModel:Destroy()
-            isReplacingSeek = false
-            return
-        end
-
-        for _, child in ipairs(customSeekModel:GetDescendants()) do
-            if child:IsA("Sound") then
-                child:Stop()
-            end
-        end
-
-        configureRootSounds(customSeekModel)
-
-        local originalHead =
-            originalRig:FindFirstChild("Head")
-
-        if originalHead then
-            local eye = originalHead:FindFirstChild("Eye")
-            local black = originalHead:FindFirstChild("Black")
-
-            if eye then
-                eye:Destroy()
-            end
-
-            if black then
-                black:Destroy()
-            end
-        end
-
-        for _, child in ipairs(originalRig:GetDescendants()) do
-            if child.Name == "StringCheese" then
-                child:Destroy()
-            end
-        end
-
-        customSeekModel.Parent = Workspace
-        currentCustomSeek = customSeekModel
-        latestSeekClone = originalSeek
-
-        local animator =
-            humanoid:FindFirstChildOfClass("Animator")
-
-        if not animator then
-            animator = Instance.new("Animator")
-            animator.Parent = humanoid
-        end
-
-        customRoot.Anchored = true
-
-        local originalRoot =
-            originalRig:FindFirstChild("Root")
-
-        if not originalRoot then
-            cleanupOldSeekModel()
-            latestSeekClone = nil
-            isReplacingSeek = false
-            return
-        end
-
-        local chaseFinished = false
-        local musicStarted = false
-        local chaseHasMoved = false
-        local movingDuration = 0
-        local stationaryDuration = 0
-        local lastOriginalPosition = originalRoot.Position
-
-        local dashActive = false
-        local dashValue = nil
-        local dashTween = nil
-
-        local followConnection = nil
-        local ancestryConnection = nil
-
-        local function isModelActive()
-            return originalSeek.Parent ~= nil
-                and customSeekModel.Parent ~= nil
-                and currentCustomSeek == customSeekModel
-        end
-
-        local function alignModelRoot(targetCFrame)
-            if not customSeekModel.Parent or not customRoot.Parent then
+            local raiseAnim = animator:LoadAnimation(raiseAnimation)
+            if not context.active then
                 return
             end
 
-            local currentPivot = customSeekModel:GetPivot()
+            raiseAnim.Looped = false
+            raiseAnim:Play()
+            raiseAnim.Stopped:Wait()
 
-            local rootToPivot =
-                customRoot.CFrame:ToObjectSpace(currentPivot)
-
-            customSeekModel:PivotTo(
-                targetCFrame * rootToPivot
-            )
-        end
-
-        local function finishChase()
-            if chaseFinished then
+            if not context.active then
                 return
             end
 
-            chaseFinished = true
-            stopAllModelSounds(customSeekModel)
-        end
+            local runAnimation = Instance.new("Animation")
+            runAnimation.AnimationId = CUSTOM_SEEK_RUN_ANIMATION_ID
+            runAnimation.Parent = customRig
 
-        alignModelRoot(originalRoot.CFrame)
-
-        followConnection = RunService.Heartbeat:Connect(function(dt)
-            if not isModelActive() then
-                if followConnection then
-                    followConnection:Disconnect()
-                    followConnection = nil
-                end
-
-                return
-            end
-
-            local sourceRoot =
-                originalRig:FindFirstChild("Root")
-
-            if sourceRoot then
-                if dashActive and dashValue then
-                    alignModelRoot(dashValue.Value)
-                else
-                    alignModelRoot(sourceRoot.CFrame)
-                end
-
-                local currentPosition = sourceRoot.Position
-
-                local speed =
-                    (currentPosition - lastOriginalPosition).Magnitude
-                    / math.max(dt, 0.001)
-
-                lastOriginalPosition = currentPosition
-
-                if musicStarted and not chaseFinished then
-                    if speed > 2 then
-                        movingDuration = movingDuration + dt
-                        stationaryDuration = 0
-
-                        if movingDuration >= 0.35 then
-                            chaseHasMoved = true
-                        end
-                    else
-                        movingDuration = 0
-
-                        if chaseHasMoved then
-                            if speed <= STOP_SPEED_THRESHOLD then
-                                stationaryDuration =
-                                    stationaryDuration + dt
-
-                                if stationaryDuration >= STOP_DETECTION_TIME then
-                                    finishChase()
-                                end
-                            else
-                                stationaryDuration = 0
-                            end
-                        end
-                    end
-                end
-            end
-
-            local originalFigure =
-                originalSeek:FindFirstChild("Figure")
-
-            if originalFigure then
-                for _, sound in ipairs(originalFigure:GetChildren()) do
-                    if sound:IsA("Sound") then
-                        sound:Stop()
-                    end
-                end
-            end
-
-            for _, part in ipairs(originalRig:GetChildren()) do
-                if part:IsA("BasePart") then
-                    part.Transparency = 1
-                end
+            local runAnim = animator:LoadAnimation(runAnimation)
+            if context.active then
+                runAnim.Looped = true
+                runAnim:Play()
             end
         end)
+    end)
+end
 
-        ancestryConnection =
-            originalSeek.AncestryChanged:Connect(function(_, parent)
-                if parent == nil then
-                    finishChase()
-
-                    if dashTween then
-                        dashTween:Cancel()
-                        dashTween = nil
-                    end
-
-                    if dashValue then
-                        dashValue:Destroy()
-                        dashValue = nil
-                    end
-
-                    dashActive = false
-
-                    if followConnection then
-                        followConnection:Disconnect()
-                        followConnection = nil
-                    end
-
-                    if currentCustomSeek == customSeekModel then
-                        cleanupOldSeekModel()
-                    end
-
-                    if latestSeekClone == originalSeek then
-                        latestSeekClone = nil
-                    end
-
-                    isReplacingSeek = false
-
-                    if ancestryConnection then
-                        ancestryConnection:Disconnect()
-                        ancestryConnection = nil
-                    end
-                end
-            end)
-
-        repeat
-            task.wait()
-        until not isModelActive()
-            or (
-                originalSeek:FindFirstChild("SeekMusic")
-                and originalSeek.SeekMusic.IsPlaying == true
-            )
-
-        if not isModelActive() then
+local function playDelayedSeekSounds(context)
+    task.delay(7, function()
+        if not context.active or not context.originalSeek.Parent then
             return
         end
 
-        musicStarted = true
+        local customSeekModel = context.customSeek
 
-        task.spawn(function()
-            task.wait(7)
+        if not customSeekModel or not customSeekModel.Parent then
+            return
+        end
 
-            if isModelActive() and not chaseFinished then
-                playRootSounds(customSeekModel, chaseFinished)
+        local figure = customSeekModel:FindFirstChild("Figure")
+
+        if not figure then
+            return
+        end
+
+        local soundNames = {
+            "FootstepsFar",
+            "Footsteps",
+            "Splashing",
+            "Splashing Far"
+        }
+
+        for _, soundName in ipairs(soundNames) do
+            local sound = figure:FindFirstChild(soundName)
+
+            if sound and sound:IsA("Sound") then
+                sound:Play()
             end
-        end)
+        end
+    end)
+end
 
-        task.spawn(function()
-            local gameData =
-                ReplicatedStorage:FindFirstChild("GameData")
+local function waitForSeekChase(context)
+    task.spawn(function()
+        local originalSeek = context.originalSeek
 
-            local latestRoom =
-                gameData and gameData:FindFirstChild("LatestRoom")
+        while context.active and originalSeek.Parent do
+            local seekMusic = originalSeek:FindFirstChild("SeekMusic")
 
-            if not latestRoom then
+            if seekMusic and seekMusic:IsA("Sound") and seekMusic.IsPlaying then
+                context.roomConnection = LatestRoom.Changed:Connect(function()
+                    if context.roomConnection then
+                        context.roomConnection:Disconnect()
+                        context.roomConnection = nil
+                    end
+
+                    if not context.active or not originalSeek.Parent or not context.customSeek.Parent then
+                        return
+                    end
+
+                    showChaseCaption()
+                    playCustomSeekSounds(context)
+                end)
+
+                playDelayedSeekSounds(context)
+                playSeekAnimations(context)
+
                 return
             end
 
-            latestRoom.Changed:Wait()
-
-            if not isModelActive() then
-                return
-            end
-
-            pcall(function()
-                require(
-                    Players.LocalPlayer.PlayerGui
-                        .MainUI.Initiator.Main_Game
-                ).caption("使用你的体力!!!", true)
-            end)
-
-            if not chaseFinished then
-                playRootSounds(customSeekModel, chaseFinished)
-            end
-        end)
-
-        task.wait(ANIMATION_DELAY)
-
-        if not isModelActive() then
-            return
+            task.wait(0.1)
         end
+    end)
+end
 
-        local raiseAnim = PlayModelAnimation(
-            customRig,
-            animator,
-            automaticSave,
-            false
-        )
+local function replaceSeekModel(originalSeek)
+    if not originalSeek or not originalSeek.Parent then
+        return
+    end
 
-        if raiseAnim then
-            raiseAnim:Wait()
-        end
+    if processedSeeks[originalSeek] then
+        return
+    end
 
-        if not isModelActive() then
-            return
-        end
+    local originalRig = originalSeek:FindFirstChild("SeekRig")
 
-        local startCFrame = customRoot.CFrame
+    if not originalRig then
+        return
+    end
 
-        local targetCFrame =
-            startCFrame + startCFrame.LookVector * DASH_DISTANCE
+    local originalRoot = originalRig:FindFirstChild("Root")
 
-        dashValue = Instance.new("CFrameValue")
-        dashValue.Name = "SeekDashValue"
-        dashValue.Value = startCFrame
+    if not originalRoot then
+        return
+    end
 
-        dashActive = true
+    local customSeekModel
 
-        dashTween = TweenService:Create(
-            dashValue,
-            TweenInfo.new(
-                DASH_DURATION,
-                Enum.EasingStyle.Linear,
-                Enum.EasingDirection.Out
-            ),
-            {
-                Value = targetCFrame
-            }
-        )
+    local success = pcall(function()
+        customSeekModel = game:GetObjects(CUSTOM_SEEK_MODEL_ID)[1]
+    end)
 
-        dashTween:Play()
+    if not success or not customSeekModel then
+        return
+    end
 
-        local playbackState = dashTween.Completed:Wait()
+    if not originalSeek.Parent then
+        customSeekModel:Destroy()
+        return
+    end
 
-        if not isModelActive() then
-            return
-        end
+    local customRig = customSeekModel:FindFirstChild("SeekRig")
+    local figure = customSeekModel:FindFirstChild("Figure")
 
-        if playbackState ~= Enum.PlaybackState.Completed then
-            dashActive = false
+    if not customRig or not figure then
+        customSeekModel:Destroy()
+        return
+    end
 
-            if dashValue then
-                dashValue:Destroy()
-                dashValue = nil
-            end
+    local customRoot = customRig:FindFirstChild("Root")
 
-            return
-        end
+    if not customRoot then
+        customSeekModel:Destroy()
+        return
+    end
 
-        alignModelRoot(targetCFrame)
+    if currentContext then
+        cleanupOldSeekModel(currentContext)
+    end
 
-        if dashTween then
-            dashTween:Destroy()
-            dashTween = nil
-        end
+    processedSeeks[originalSeek] = true
 
-        local runAnim = PlayModelAnimation(
-            customRig,
-            animator,
-            runNew,
-            true
-        )
+    customSeekModel.Name = "seek2"
 
-        if not isModelActive() then
-            return
-        end
-
-        alignModelRoot(originalRoot.CFrame)
-
-        dashActive = false
-
-        if dashValue then
-            dashValue:Destroy()
-            dashValue = nil
+    for _, child in ipairs(figure:GetChildren()) do
+        if child:IsA("Sound") then
+            child:Stop()
         end
     end
 
-    if ReplicatedStorage:FindFirstChild("GameData")
-        and ReplicatedStorage.GameData:FindFirstChild("LatestRoom") then
+    local originalHead = originalRig:FindFirstChild("Head")
 
-        ReplicatedStorage.GameData.LatestRoom.Changed:Connect(
-            checkAndReplace
-        )
-    else
-        task.spawn(function()
-            while true do
-                task.wait(2)
+    if originalHead then
+        local eye = originalHead:FindFirstChild("Eye")
+        local black = originalHead:FindFirstChild("Black")
 
-                if Workspace:FindFirstChild("SeekMovingNewClone")
-                    and not isReplacingSeek then
+        if eye then
+            eye:Destroy()
+        end
 
-                    checkAndReplace()
+        if black then
+            black:Destroy()
+        end
+    end
+
+    for _, child in ipairs(originalRig:GetDescendants()) do
+        if child.Name == "StringCheese" then
+            child:Destroy()
+        end
+    end
+
+    customRoot.Anchored = true
+    customRoot.CFrame = originalRoot.CFrame
+
+    customSeekModel.Parent = Workspace
+    currentCustomSeek = customSeekModel
+
+    local context = {
+        originalSeek = originalSeek,
+        originalRig = originalRig,
+        originalRoot = originalRoot,
+
+        customSeek = customSeekModel,
+        customRig = customRig,
+        customRoot = customRoot,
+
+        active = true,
+        roomConnection = nil,
+        followConnection = nil,
+        ancestryConnection = nil
+    }
+
+    currentContext = context
+
+    context.followConnection = RunService.Heartbeat:Connect(function()
+        if not context.active then
+            return
+        end
+
+        if not originalSeek.Parent or not customSeekModel.Parent then
+            cleanupOldSeekModel(context)
+            return
+        end
+
+        local originalRigRoot = originalRig:FindFirstChild("Root")
+        local customRigRoot = customRig:FindFirstChild("Root")
+
+        if originalRigRoot and customRigRoot then
+            customRigRoot.CFrame = originalRigRoot.CFrame
+        end
+
+        local originalFigure = originalSeek:FindFirstChild("Figure")
+
+        if originalFigure then
+            for _, sound in ipairs(originalFigure:GetChildren()) do
+                if sound:IsA("Sound") then
+                    sound:Stop()
                 end
             end
-        end)
+        end
+
+        for _, part in ipairs(originalRig:GetDescendants()) do
+            if part:IsA("BasePart") then
+                part.Transparency = 1
+            end
+        end
+    end)
+
+    context.ancestryConnection = originalSeek.AncestryChanged:Connect(function(_, parent)
+        if parent == nil then
+            cleanupOldSeekModel(context)
+        end
+    end)
+
+    waitForSeekChase(context)
+end
+
+local function scheduleSeekReplacement(originalSeek)
+    if not originalSeek then
+        return
+    end
+
+    if originalSeek.Name ~= "SeekMovingNewClone" then
+        return
+    end
+
+    if processedSeeks[originalSeek] then
+        return
+    end
+
+    if pendingSeeks[originalSeek] then
+        return
+    end
+
+    pendingSeeks[originalSeek] = true
+
+    task.delay(3.5, function()
+        if originalSeek.Parent and not processedSeeks[originalSeek] then
+            pcall(replaceSeekModel, originalSeek)
+        end
+
+        pendingSeeks[originalSeek] = nil
+    end)
+end
+
+local function initializeSeekReplacement()
+    Workspace.ChildAdded:Connect(function(child)
+        if child.Name == "SeekMovingNewClone" then
+            scheduleSeekReplacement(child)
+        end
+    end)
+
+    LatestRoom.Changed:Connect(function()
+        local originalSeek = Workspace:FindFirstChild("SeekMovingNewClone")
+
+        if originalSeek then
+            scheduleSeekReplacement(originalSeek)
+        end
+    end)
+
+    local existingSeek = Workspace:FindFirstChild("SeekMovingNewClone")
+
+    if existingSeek then
+        scheduleSeekReplacement(existingSeek)
     end
 end
 
 loadAudioFromGitHub()
 replaceSeekMusic()
-replaceSeekModel()
+initializeSeekReplacement()
 end
 
 function entityBehaviors.DeergodFromthefront()
