@@ -1,6 +1,7 @@
 do
     local monitoredWorkspace = game:GetService("Workspace")
     local monitoredPlayer = game:GetService("Players").LocalPlayer
+    if not monitoredPlayer then return end
     local kickReason = "Don't use the main thread execution panel"
 
     local function checkHardcoreOne(instance)
@@ -24,60 +25,185 @@ do
         local previous = parent:FindFirstChild("CouragePrivilegeNotice")
         if previous then previous:Destroy() end
         local transition = game:GetService("TweenService")
+
         local notice = Instance.new("ScreenGui")
         notice.Name = "CouragePrivilegeNotice"
         notice.IgnoreGuiInset = true
         notice.ResetOnSpawn = false
         notice.DisplayOrder = 1100
         notice.Parent = parent
+
+        local holoBg = Instance.new("Frame")
+        holoBg.Name = "HoloBg"
+        holoBg.AnchorPoint = Vector2.new(0.5, 1)
+        holoBg.Position = UDim2.new(0.5, 0, 1, -38)
+        holoBg.Size = UDim2.new(0, 0, 0, 0)
+        holoBg.BackgroundTransparency = 1
+        holoBg.BorderSizePixel = 0
+        holoBg.Parent = notice
+
+        local sigil = Instance.new("ImageLabel")
+        sigil.Name = "AccessSigil"
+        sigil.AnchorPoint = Vector2.new(0.5, 0.5)
+        sigil.Position = UDim2.new(0.5, 0, 0.5, 0)
+        sigil.Size = UDim2.fromOffset(64, 64)
+        sigil.BackgroundTransparency = 1
+        sigil.Image = "rbxassetid://12549667544"
+        sigil.ImageColor3 = Color3.fromRGB(255, 80, 80)
+        sigil.ImageTransparency = 1
+        sigil.ScaleType = Enum.ScaleType.Fit
+        sigil.ZIndex = 5
+        sigil.Parent = notice
+
         local panel = Instance.new("Frame")
         panel.Name = "MessageFrame"
         panel.AnchorPoint = Vector2.new(0.5, 1)
-        panel.Position = UDim2.new(0.5, 0, 1, -42)
+        panel.Position = UDim2.new(0.5, 0, 1, -38)
         panel.Size = UDim2.new(0.9, 0, 0, 56)
-        panel.BackgroundColor3 = Color3.fromRGB(28, 20, 24)
+        panel.BackgroundColor3 = Color3.fromRGB(18, 8, 8)
         panel.BackgroundTransparency = 1
         panel.BorderSizePixel = 0
         panel.Parent = notice
+
         local limit = Instance.new("UISizeConstraint")
-        limit.MaxSize = Vector2.new(390, 56)
+        limit.MaxSize = Vector2.new(430, 56)
         limit.Parent = panel
+
         local corner = Instance.new("UICorner")
-        corner.CornerRadius = UDim.new(0, 12)
+        corner.CornerRadius = UDim.new(0, 10)
         corner.Parent = panel
+
+        local scanLine = Instance.new("Frame")
+        scanLine.Name = "ScanLine"
+        scanLine.Size = UDim2.new(1, 0, 0, 2)
+        scanLine.Position = UDim2.fromScale(0, 0)
+        scanLine.BackgroundColor3 = Color3.fromRGB(255, 60, 60)
+        scanLine.BackgroundTransparency = 0.3
+        scanLine.BorderSizePixel = 0
+        scanLine.ZIndex = 6
+        scanLine.Parent = panel
+        local scanGrad = Instance.new("UIGradient")
+        scanGrad.Color = ColorSequence.new({
+            ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 0, 0)),
+            ColorSequenceKeypoint.new(0.5, Color3.fromRGB(255, 180, 180)),
+            ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 0, 0)),
+        })
+        scanGrad.Parent = scanLine
+
         local border = Instance.new("UIStroke")
-        border.Color = Color3.fromRGB(244, 177, 90)
+        border.Color = Color3.fromRGB(220, 50, 50)
         border.Thickness = 1.5
         border.Transparency = 1
         border.Parent = panel
+
+        local borderGlow = Instance.new("UIStroke")
+        borderGlow.Color = Color3.fromRGB(255, 100, 100)
+        borderGlow.Thickness = 4
+        borderGlow.Transparency = 1
+        borderGlow.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+        borderGlow.Parent = panel
+
+        local iconLabel = Instance.new("ImageLabel")
+        iconLabel.Name = "LockIcon"
+        iconLabel.AnchorPoint = Vector2.new(0, 0.5)
+        iconLabel.Position = UDim2.new(0, 14, 0.5, 0)
+        iconLabel.Size = UDim2.fromOffset(22, 22)
+        iconLabel.BackgroundTransparency = 1
+        iconLabel.Image = "rbxassetid://12549667544"
+        iconLabel.ImageColor3 = Color3.fromRGB(255, 80, 80)
+        iconLabel.ImageTransparency = 1
+        iconLabel.ScaleType = Enum.ScaleType.Fit
+        iconLabel.ZIndex = 7
+        iconLabel.Parent = panel
+
         local message = Instance.new("TextLabel")
         message.Name = "PrivilegeError"
-        message.Size = UDim2.fromScale(1, 1)
+        message.Size = UDim2.new(1, -50, 1, 0)
+        message.Position = UDim2.fromOffset(44, 0)
         message.BackgroundTransparency = 1
-        message.Text = "Insufficient privileges"
-        message.TextColor3 = Color3.fromRGB(255, 208, 153)
-        message.TextSize = 21
-        message.TextScaled = true
+        message.Text = "ACCESS DENIED  —  Insufficient Privileges"
+        message.TextColor3 = Color3.new(1, 1, 1)
+        message.TextSize = 15
+        message.TextScaled = false
         message.TextTransparency = 1
         message.TextStrokeTransparency = 1
-        message.TextStrokeColor3 = Color3.fromRGB(58, 25, 12)
+        message.TextStrokeColor3 = Color3.fromRGB(80, 10, 10)
+        message.TextXAlignment = Enum.TextXAlignment.Left
         message.FontFace = Font.new("rbxassetid://12187360881", Enum.FontWeight.Medium, Enum.FontStyle.Normal)
         message.Parent = panel
+
+        local msgGrad = Instance.new("UIGradient")
+        msgGrad.Color = ColorSequence.new({
+            ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 100, 100)),
+            ColorSequenceKeypoint.new(0.4, Color3.fromRGB(255, 200, 200)),
+            ColorSequenceKeypoint.new(0.7, Color3.fromRGB(255, 80, 80)),
+            ColorSequenceKeypoint.new(1, Color3.fromRGB(220, 50, 50)),
+        })
+        msgGrad.Rotation = 0
+        msgGrad.Parent = message
+
         local textLimit = Instance.new("UITextSizeConstraint")
-        textLimit.MinTextSize = 12
-        textLimit.MaxTextSize = 21
+        textLimit.MinTextSize = 11
+        textLimit.MaxTextSize = 15
         textLimit.Parent = message
-        local ease = TweenInfo.new(1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-        transition:Create(panel, ease, {BackgroundTransparency = 0.18}):Play()
-        transition:Create(border, ease, {Transparency = 0.13}):Play()
-        transition:Create(message, ease, {TextTransparency = 0, TextStrokeTransparency = 0.56}):Play()
+
+        local ease = TweenInfo.new(0.7, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+        local easeOut = TweenInfo.new(0.9, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+        local TS = transition
+
+        sigil.Parent = notice
+        sigil.AnchorPoint = Vector2.new(0.5, 1)
+        sigil.Position = UDim2.new(0.5, 0, 1, -18)
+        sigil.Size = UDim2.fromOffset(80, 80)
+
+        TS:Create(sigil, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+            ImageTransparency = 0.1,
+            Size = UDim2.fromOffset(44, 44),
+            Position = UDim2.new(0.5, 0, 1, -86),
+        }):Play()
+
+        task.delay(0.15, function()
+            TS:Create(panel, ease, {BackgroundTransparency = 0.1}):Play()
+            TS:Create(border, easeOut, {Transparency = 0.05}):Play()
+            TS:Create(borderGlow, easeOut, {Transparency = 0.72}):Play()
+            TS:Create(message, easeOut, {TextTransparency = 0, TextStrokeTransparency = 0.5}):Play()
+            TS:Create(iconLabel, easeOut, {ImageTransparency = 0}):Play()
+        end)
+
+        local scanTween = TS:Create(scanLine,
+            TweenInfo.new(1.8, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true),
+            {Position = UDim2.fromScale(0, 1), BackgroundTransparency = 0.7}
+        )
+        task.delay(0.3, function() scanTween:Play() end)
+
+        local glowTween = TS:Create(borderGlow,
+            TweenInfo.new(1.1, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true),
+            {Transparency = 0.55}
+        )
+        task.delay(0.4, function() glowTween:Play() end)
+
+        local sigilSpin = TS:Create(sigil,
+            TweenInfo.new(4, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut, -1),
+            {Rotation = 360}
+        )
+        task.delay(0.1, function() sigilSpin:Play() end)
+
         task.delay(4, function()
             if not notice.Parent then return end
-            transition:Create(panel, ease, {BackgroundTransparency = 1}):Play()
-            transition:Create(border, ease, {Transparency = 1}):Play()
-            transition:Create(message, ease, {TextTransparency = 1, TextStrokeTransparency = 1}):Play()
+            scanTween:Cancel()
+            glowTween:Cancel()
+            sigilSpin:Cancel()
+            TS:Create(panel, TweenInfo.new(0.9, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {BackgroundTransparency = 1}):Play()
+            TS:Create(border, TweenInfo.new(0.7, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {Transparency = 1}):Play()
+            TS:Create(borderGlow, TweenInfo.new(0.7, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {Transparency = 1}):Play()
+            TS:Create(message, TweenInfo.new(0.7, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {TextTransparency = 1, TextStrokeTransparency = 1}):Play()
+            TS:Create(iconLabel, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {ImageTransparency = 1}):Play()
+            TS:Create(sigil, TweenInfo.new(0.6, Enum.EasingStyle.Back, Enum.EasingDirection.In), {
+                ImageTransparency = 1,
+                Size = UDim2.fromOffset(14, 14),
+            }):Play()
         end)
-        task.delay(5.05, function()
+        task.delay(5.1, function()
             if notice.Parent then notice:Destroy() end
         end)
         return
@@ -102,14 +228,17 @@ if old then
 end
 
 local C = {
-    gold = Color3.fromRGB(242, 184, 83),
-    pale = Color3.fromRGB(255, 242, 198),
-    bronze = Color3.fromRGB(151, 91, 30),
-    ice = Color3.fromRGB(147, 212, 235),
-    white = Color3.fromRGB(255, 250, 231),
-    muted = Color3.fromRGB(220, 194, 145),
-    dark = Color3.fromRGB(17, 27, 40),
-    dark2 = Color3.fromRGB(43, 62, 82),
+    gold = Color3.fromRGB(105, 218, 255),
+    pale = Color3.fromRGB(222, 246, 255),
+    bronze = Color3.fromRGB(55, 93, 142),
+    ice = Color3.fromRGB(143, 222, 255),
+    white = Color3.fromRGB(229, 242, 255),
+    muted = Color3.fromRGB(153, 185, 213),
+    dark = Color3.fromRGB(7, 13, 26),
+    dark2 = Color3.fromRGB(22, 40, 62),
+    cyan = Color3.fromRGB(0, 220, 255),
+    plasma = Color3.fromRGB(180, 100, 255),
+    energy = Color3.fromRGB(100, 255, 220),
 }
 local titleFont = Font.new("rbxassetid://12187360881", Enum.FontWeight.Medium, Enum.FontStyle.Normal)
 local bodyFont = Font.new("rbxassetid://12187360881", Enum.FontWeight.Medium, Enum.FontStyle.Normal)
@@ -156,31 +285,31 @@ end
 local function metal(st)
     st.Color = Color3.fromRGB(255, 255, 255)
     local gr = gradient(st, {
-        Color3.fromRGB(102, 56, 16),
-        Color3.fromRGB(220, 153, 48),
-        Color3.fromRGB(255, 248, 204),
-        Color3.fromRGB(188, 111, 26),
-        Color3.fromRGB(255, 223, 143),
-        Color3.fromRGB(124, 68, 22),
+        Color3.fromRGB(34, 64, 108),
+        Color3.fromRGB(77, 194, 240),
+        Color3.fromRGB(225, 250, 255),
+        Color3.fromRGB(82, 114, 212),
+        Color3.fromRGB(167, 150, 255),
+        Color3.fromRGB(36, 72, 117),
     }, 22)
     table.insert(borderGradients, gr)
     return gr
 end
 local function gildText(o, large)
     o.TextColor3 = Color3.new(1, 1, 1)
-    o.TextStrokeColor3 = Color3.fromRGB(38, 21, 10)
+    o.TextStrokeColor3 = Color3.fromRGB(6, 15, 31)
     o.TextStrokeTransparency = large and 0.57 or 0.79
     local gr = gradient(o, large and {
-        Color3.fromRGB(163, 94, 25),
-        Color3.fromRGB(255, 210, 113),
-        Color3.fromRGB(255, 250, 215),
-        Color3.fromRGB(234, 168, 65),
-        Color3.fromRGB(255, 234, 159),
+        Color3.fromRGB(115, 185, 238),
+        Color3.fromRGB(179, 232, 255),
+        Color3.fromRGB(248, 253, 255),
+        Color3.fromRGB(118, 189, 255),
+        Color3.fromRGB(205, 216, 255),
     } or {
-        Color3.fromRGB(205, 151, 66),
-        Color3.fromRGB(255, 228, 160),
-        Color3.fromRGB(255, 249, 214),
-        Color3.fromRGB(227, 174, 88),
+        Color3.fromRGB(145, 191, 223),
+        Color3.fromRGB(209, 235, 255),
+        Color3.fromRGB(244, 252, 255),
+        Color3.fromRGB(159, 204, 238),
     }, 0)
     if large then table.insert(titleGradients, gr) end
     return gr
@@ -218,6 +347,15 @@ local function clickSound()
     task.delay(3, function() if s.Parent then s:Destroy() end end)
 end
 
+local function playMagicSound()
+    local s = make("Sound", SoundService, {
+        SoundId = "rbxassetid://138498992667102", Volume = 0.72, PlaybackSpeed = 0.8,
+    })
+    s.Ended:Once(function() s:Destroy() end)
+    s:Play()
+    task.delay(7.5, function() if s.Parent then s:Destroy() end end)
+end
+
 local gui = make("ScreenGui", playerGui, {
     Name = "HardCoreGildedAdmin", ResetOnSpawn = false,
     IgnoreGuiInset = true, ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
@@ -228,38 +366,133 @@ local dim = make("TextButton", gui, {
     Name = "DarkBackdrop", Size = UDim2.fromScale(1, 1),
     BackgroundColor3 = C.dark, BackgroundTransparency = 1,
     BorderSizePixel = 0, Text = "", AutoButtonColor = false,
-    Visible = false, ZIndex = 1,
+    Active = true, Selectable = false, Visible = false, ZIndex = 1,
 })
-gradient(dim, {Color3.fromRGB(11, 20, 32), Color3.fromRGB(21, 34, 48), Color3.fromRGB(35, 28, 23)}, 24)
-local fx = make("Frame", gui, {
-    Name = "AmbientEffects", BackgroundTransparency = 1,
+gradient(dim, {Color3.fromRGB(11, 20, 32), Color3.fromRGB(21, 34, 48), Color3.fromRGB(24, 19, 43)}, 24)
+
+local fx = make("CanvasGroup", gui, {
+    Name = "AmbientEffects", BackgroundTransparency = 1, GroupTransparency = 0,
     Size = UDim2.fromScale(1, 1), Visible = false, ZIndex = 2,
 })
-for i = 1, 11 do
-    make("Frame", fx, {
-        Position = UDim2.fromScale(i / 12, 0), Size = UDim2.new(0, 1, 1, 0),
-        BackgroundColor3 = C.ice, BackgroundTransparency = 0.94, BorderSizePixel = 0,
+
+for i = 1, 14 do
+    local gridLine = make("Frame", fx, {
+        Position = UDim2.fromScale(i / 15, 0), Size = UDim2.new(0, 1, 1, 0),
+        BackgroundColor3 = C.cyan, BackgroundTransparency = 0.91, BorderSizePixel = 0,
     })
-end
-for i = 1, 7 do
-    make("Frame", fx, {
-        Position = UDim2.fromScale(0, i / 8), Size = UDim2.new(1, 0, 0, 1),
-        BackgroundColor3 = C.ice, BackgroundTransparency = 0.945, BorderSizePixel = 0,
+    local lineGrad = Instance.new("UIGradient")
+    lineGrad.Transparency = NumberSequence.new({
+        NumberSequenceKeypoint.new(0, 1),
+        NumberSequenceKeypoint.new(0.3, 0.6),
+        NumberSequenceKeypoint.new(0.7, 0.6),
+        NumberSequenceKeypoint.new(1, 1),
     })
+    lineGrad.Parent = gridLine
 end
+for i = 1, 9 do
+    local gridLine = make("Frame", fx, {
+        Position = UDim2.fromScale(0, i / 10), Size = UDim2.new(1, 0, 0, 1),
+        BackgroundColor3 = C.cyan, BackgroundTransparency = 0.92, BorderSizePixel = 0,
+    })
+    local lineGrad = Instance.new("UIGradient")
+    lineGrad.Transparency = NumberSequence.new({
+        NumberSequenceKeypoint.new(0, 1),
+        NumberSequenceKeypoint.new(0.25, 0.5),
+        NumberSequenceKeypoint.new(0.75, 0.5),
+        NumberSequenceKeypoint.new(1, 1),
+    })
+    lineGrad.Parent = gridLine
+end
+
 local particleList = {}
+local starParticleList = {}
 local random = Random.new(2077)
-for i = 1, (UIS.TouchEnabled and 9 or 15) do
+for i = 1, (UIS.TouchEnabled and 12 or 22) do
+    local isStar = i % 5 == 0
+    local size = isStar and 6 or (i % 3 == 0 and 3 or 2)
     local p = make("Frame", fx, {
-        Size = UDim2.fromOffset(i % 3 == 0 and 3 or 2, i % 3 == 0 and 3 or 2),
+        Size = UDim2.fromOffset(size, size),
         Position = UDim2.fromScale(random:NextNumber(), random:NextNumber()),
-        BackgroundColor3 = i % 4 == 0 and C.ice or C.gold,
+        BackgroundColor3 = isStar and C.pale or (i % 4 == 0 and C.cyan or (i % 7 == 0 and C.plasma or C.gold)),
         BackgroundTransparency = 0.30, BorderSizePixel = 0,
     })
-    round(p, 6)
+    round(p, isStar and 0 or 6)
+    if isStar then
+        p.Rotation = 45
+    end
     table.insert(particleList, {
         object = p, x = p.Position.X.Scale, y = p.Position.Y.Scale,
-        speed = random:NextNumber(0.008, 0.025), phase = random:NextNumber(0, 6.28),
+        speed = random:NextNumber(0.006, 0.022), phase = random:NextNumber(0, 6.28),
+        isStar = isStar,
+    })
+end
+for i = 1, (UIS.TouchEnabled and 12 or 26) do
+    local size = random:NextInteger(8, 18)
+    local star = make("ImageLabel", fx, {
+        Size = UDim2.fromOffset(size, size),
+        Position = UDim2.fromScale(random:NextNumber(), random:NextNumber()),
+        BackgroundTransparency = 1,
+        Image = "rbxassetid://14488863746",
+        ImageColor3 = i % 4 == 0 and C.plasma or (i % 3 == 0 and C.cyan or (i % 2 == 0 and C.pale or C.gold)),
+        ImageTransparency = random:NextNumber(0.52, 0.78),
+        ScaleType = Enum.ScaleType.Fit,
+        ZIndex = 4,
+        Rotation = random:NextInteger(0, 359),
+    })
+    table.insert(starParticleList, {
+        object = star,
+        x = star.Position.X.Scale,
+        y = star.Position.Y.Scale,
+        speed = random:NextNumber(0.0105, 0.0315),
+        phase = random:NextNumber(0, 6.28),
+        drift = random:NextNumber(0.008, 0.024),
+        spin = random:NextNumber(-16, 16),
+        pulse = random:NextNumber(0.7, 1.8),
+    })
+end
+
+local sigilOverlay = make("ImageLabel", gui, {
+    Name = "OpenSigilOverlay",
+    AnchorPoint = Vector2.new(0.5, 0.5),
+    Position = UDim2.fromScale(0.5, 0.5),
+    Size = UDim2.fromOffset(520, 520),
+    BackgroundTransparency = 1,
+    Image = "rbxassetid://12549667544",
+    ImageColor3 = C.gold,
+    ImageTransparency = 1,
+    ScaleType = Enum.ScaleType.Fit,
+    Visible = false,
+    ZIndex = 50,
+})
+
+local starBurstHolder = make("CanvasGroup", gui, {
+    Name = "StarBurstHolder",
+    AnchorPoint = Vector2.new(0.5, 0.5),
+    Position = UDim2.fromScale(0.5, 0.5),
+    Size = UDim2.fromScale(1, 1),
+    BackgroundTransparency = 1,
+    GroupTransparency = 0,
+    Visible = false,
+    ZIndex = 49,
+})
+local starBursts = {}
+for i = 1, 18 do
+    local star = make("ImageLabel", starBurstHolder, {
+        AnchorPoint = Vector2.new(0.5, 0.5),
+        Position = UDim2.fromScale(0.5, 0.5),
+        Size = UDim2.fromOffset(random:NextInteger(8, 20), random:NextInteger(8, 20)),
+        BackgroundTransparency = 1,
+        Image = "rbxassetid://14488863746",
+        ImageColor3 = i % 3 == 0 and C.plasma or (i % 2 == 0 and C.cyan or C.gold),
+        ImageTransparency = 1,
+        ScaleType = Enum.ScaleType.Fit,
+        ZIndex = 51,
+    })
+    table.insert(starBursts, {
+        obj = star,
+        angle = (i / 18) * math.pi * 2,
+        dist = random:NextNumber(60, 260),
+        delay = random:NextNumber(0, 0.3),
     })
 end
 
@@ -267,13 +500,28 @@ local mobileIcon = make("ImageButton", gui, {
     Name = "MobileOpenButton", AnchorPoint = Vector2.new(1, 0),
     Position = UDim2.new(1, -19, 0, 64), Size = UDim2.fromOffset(53, 53),
     Image = "rbxassetid://11656483170", ImageColor3 = C.pale,
-    BackgroundColor3 = Color3.fromRGB(94, 73, 49), AutoButtonColor = false,
+    BackgroundColor3 = Color3.fromRGB(20, 39, 62), AutoButtonColor = false,
     ScaleType = Enum.ScaleType.Fit, ZIndex = 30,
     Visible = UIS.TouchEnabled,
 })
 round(mobileIcon, 14)
 local mobileBorder = stroke(mobileIcon, 0.02, 2.3)
 local mobileBorderGrad = metal(mobileBorder)
+
+local mobileSigilRing = make("ImageLabel", gui, {
+    Name = "MobileSigilRing",
+    AnchorPoint = Vector2.new(1, 0),
+    Position = UDim2.new(1, -6, 0, 51),
+    Size = UDim2.fromOffset(79, 79),
+    BackgroundTransparency = 1,
+    Image = "rbxassetid://12549667544",
+    ImageColor3 = C.gold,
+    ImageTransparency = 0.65,
+    ScaleType = Enum.ScaleType.Fit,
+    ZIndex = 29,
+    Visible = UIS.TouchEnabled,
+})
+
 local mobileScale = make("UIScale", mobileIcon, {Scale = 1})
 local mobileTag = label(mobileIcon, "PANEL", 8, {
     AnchorPoint = Vector2.new(0.5, 1), Position = UDim2.new(0.5, 0, 1, -2),
@@ -290,6 +538,19 @@ local cursor = make("Frame", gui, {
 round(cursor, 20)
 local cursorStroke = stroke(cursor, 0.1, 1.6)
 local cursorGradient = metal(cursorStroke)
+
+local cursorRing = make("ImageLabel", cursor, {
+    AnchorPoint = Vector2.new(0.5, 0.5),
+    Position = UDim2.fromScale(0.5, 0.5),
+    Size = UDim2.fromOffset(36, 36),
+    BackgroundTransparency = 1,
+    Image = "rbxassetid://14488863746",
+    ImageColor3 = C.cyan,
+    ImageTransparency = 0.5,
+    ScaleType = Enum.ScaleType.Fit,
+    ZIndex = 42,
+})
+
 make("Frame", cursor, {
     AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5),
     Size = UDim2.fromOffset(4, 4), BackgroundColor3 = C.pale,
@@ -327,7 +588,7 @@ local outerHalo = make("Frame", gui, {
     Position = UDim2.fromScale(0.5, 0.54), Size = UDim2.fromOffset(840, 580),
     BackgroundTransparency = 1, Visible = false, ZIndex = 8,
 })
-round(outerHalo, 18)
+round(outerHalo, 9)
 local outerHaloStroke = stroke(outerHalo, 1, 9)
 local outerHaloGradient = metal(outerHaloStroke)
 local outerHaloScale = make("UIScale", outerHalo, {Scale = 0.87})
@@ -337,10 +598,24 @@ local goldEdge = make("Frame", gui, {
     Position = UDim2.fromScale(0.5, 0.54), Size = UDim2.fromOffset(840, 580),
     BackgroundTransparency = 1, Visible = false, ZIndex = 9,
 })
-round(goldEdge, 18)
+round(goldEdge, 9)
 local goldEdgeStroke = stroke(goldEdge, 1, 3.4)
 local goldEdgeGradient = metal(goldEdgeStroke)
 local goldEdgeScale = make("UIScale", goldEdge, {Scale = 0.87})
+
+local plasmaRing = make("ImageLabel", gui, {
+    Name = "PlasmaRing",
+    AnchorPoint = Vector2.new(0.5, 0.5),
+    Position = UDim2.fromScale(0.5, 0.5),
+    Size = UDim2.fromOffset(1320, 1320),
+    BackgroundTransparency = 1,
+    Image = "rbxassetid://119699255679093",
+    ImageColor3 = C.gold,
+    ImageTransparency = 1,
+    ScaleType = Enum.ScaleType.Fit,
+    Visible = false,
+    ZIndex = 7,
+})
 
 local panel = make("CanvasGroup", gui, {
     Name = "AdminPanel", AnchorPoint = Vector2.new(0.5, 0.5),
@@ -349,17 +624,17 @@ local panel = make("CanvasGroup", gui, {
     BorderSizePixel = 0, ClipsDescendants = true,
     GroupTransparency = 1, Visible = false, ZIndex = 10,
 })
-round(panel, 18)
+round(panel, 9)
 local panelFill = make("Frame", panel, {
     Name = "WarmTranslucentGlass", Position = UDim2.fromScale(0, 0),
     Size = UDim2.fromScale(1, 1), BackgroundColor3 = Color3.new(1, 1, 1),
-    BackgroundTransparency = 0.29, BorderSizePixel = 0, ZIndex = 1,
+    BackgroundTransparency = 0.06, BorderSizePixel = 0, ZIndex = 1,
 })
-round(panelFill, 18)
+round(panelFill, 9)
 local panelGradient = gradient(panelFill, {
-    Color3.fromRGB(77, 65, 54),
-    Color3.fromRGB(49, 52, 57),
-    Color3.fromRGB(78, 58, 45),
+    Color3.fromRGB(15, 28, 48),
+    Color3.fromRGB(5, 12, 24),
+    Color3.fromRGB(25, 20, 49),
 }, 112)
 local panelStroke = stroke(panel, 0, 2.7)
 local panelBorderGrad = metal(panelStroke)
@@ -368,9 +643,84 @@ local inner = make("Frame", panel, {
     Position = UDim2.fromOffset(6, 6), Size = UDim2.new(1, -12, 1, -12),
     BackgroundTransparency = 1, ZIndex = 1,
 })
-round(inner, 13)
+round(inner, 6)
 local innerStroke = stroke(inner, 0.34, 1.35)
 metal(innerStroke)
+
+local cyanInnerStroke = make("UIStroke", inner, {
+    Color = C.cyan, Transparency = 0.82, Thickness = 0.8,
+    ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+})
+
+local holoPanelOverlay = make("Frame", panel, {
+    Name = "HoloPanelOverlay",
+    Size = UDim2.fromScale(1, 1),
+    BackgroundTransparency = 1,
+    BorderSizePixel = 0,
+    ZIndex = 2,
+    ClipsDescendants = true,
+})
+round(holoPanelOverlay, 9)
+
+local scanBeam = make("Frame", holoPanelOverlay, {
+    Name = "ScanBeam",
+    AnchorPoint = Vector2.new(0, 0.5),
+    Size = UDim2.new(1, 0, 0, 2),
+    Position = UDim2.fromScale(0, -0.01),
+    BackgroundColor3 = Color3.fromRGB(110, 255, 160),
+    BackgroundTransparency = 0.55,
+    BorderSizePixel = 0,
+    ZIndex = 3,
+})
+local scanGrad = Instance.new("UIGradient")
+scanGrad.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 145, 65)),
+    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(185, 255, 205)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(0, 145, 65)),
+})
+scanGrad.Transparency = NumberSequence.new({
+    NumberSequenceKeypoint.new(0, 1),
+    NumberSequenceKeypoint.new(0.1, 0.4),
+    NumberSequenceKeypoint.new(0.5, 0.1),
+    NumberSequenceKeypoint.new(0.9, 0.4),
+    NumberSequenceKeypoint.new(1, 1),
+})
+scanGrad.Parent = scanBeam
+
+local scanGlow = make("Frame", holoPanelOverlay, {
+    Name = "ScanGlow",
+    AnchorPoint = Vector2.new(0, 0.5),
+    Size = UDim2.new(1, 0, 0, 40),
+    Position = UDim2.fromScale(0, -0.01),
+    BackgroundColor3 = Color3.fromRGB(55, 255, 120),
+    BackgroundTransparency = 0.88,
+    BorderSizePixel = 0,
+    ZIndex = 2,
+})
+local scanGlowGrad = Instance.new("UIGradient")
+scanGlowGrad.Transparency = NumberSequence.new({
+    NumberSequenceKeypoint.new(0, 1),
+    NumberSequenceKeypoint.new(0.5, 0.0),
+    NumberSequenceKeypoint.new(1, 1),
+})
+scanGlowGrad.Rotation = 90
+scanGlowGrad.Parent = scanGlow
+
+local cornerStarList = {}
+for ci, cdata in ipairs({{0,0},{1,0},{0,1},{1,1}}) do
+    local cs = make("ImageLabel", panel, {
+        AnchorPoint = Vector2.new(cdata[1], cdata[2]),
+        Position = UDim2.new(cdata[1], cdata[1]==0 and 4 or -4, cdata[2], cdata[2]==0 and 4 or -4),
+        Size = UDim2.fromOffset(18, 18),
+        BackgroundTransparency = 1,
+        Image = "rbxassetid://14488863746",
+        ImageColor3 = C.gold,
+        ImageTransparency = 0.3,
+        ScaleType = Enum.ScaleType.Fit,
+        ZIndex = 20,
+    })
+    table.insert(cornerStarList, cs)
+end
 
 local function brackets(parent, inset, lineLength)
     for _, item in ipairs({{0, 0, 1, 1}, {1, 0, -1, 1}, {0, 1, 1, -1}, {1, 1, -1, -1}}) do
@@ -392,22 +742,82 @@ brackets(panel, 13, 21)
 local header = make("Frame", panel, {
     BackgroundTransparency = 1, Size = UDim2.new(1, 0, 0, 90), ZIndex = 12,
 })
-local title = label(header, "The Courage Panlt", 28, {
-    FontFace = titleFont, Position = UDim2.fromOffset(27, 16),
-    Size = UDim2.new(1, -154, 0, 34), TextColor3 = C.pale, ZIndex = 13,
+
+local headerAccent = make("Frame", header, {
+    Name = "HeaderAccent",
+    Position = UDim2.fromOffset(0, 0),
+    Size = UDim2.new(1, 0, 1, 0),
+    BackgroundColor3 = Color3.fromRGB(20, 35, 50),
+    BackgroundTransparency = 0.65,
+    BorderSizePixel = 0,
+    ZIndex = 11,
 })
-local subtitle = label(header, "Auxiliary Panel Console", 10, {
-    Position = UDim2.fromOffset(29, 52), Size = UDim2.new(1, -152, 0, 16),
+round(headerAccent, 8)
+local headerAccentGrad = gradient(headerAccent, {
+    Color3.fromRGB(30, 55, 80),
+    Color3.fromRGB(15, 28, 42),
+    Color3.fromRGB(25, 40, 55),
+}, 90)
+
+local headerSigilBg = make("ImageLabel", header, {
+    Name = "HeaderSigil",
+    AnchorPoint = Vector2.new(0, 0.5),
+    Position = UDim2.new(0, -8, 0.5, 0),
+    Size = UDim2.fromOffset(94, 94),
+    BackgroundTransparency = 1,
+    Image = "rbxassetid://12549667544",
+    ImageColor3 = C.gold,
+    ImageTransparency = 0.82,
+    ScaleType = Enum.ScaleType.Fit,
+    ZIndex = 12,
+})
+
+local title = label(header, "THE COURAGE PANEL", 29, {
+    FontFace = titleFont, Position = UDim2.fromOffset(27, 16),
+    Size = UDim2.new(1, -230, 0, 34), TextColor3 = C.pale, ZIndex = 13,
+})
+local subtitle = label(header, "OVERDRIVE  /  HOLOGRAPHIC INTERFACE", 11, {
+    Position = UDim2.fromOffset(29, 52), Size = UDim2.new(1, -230, 0, 16),
     TextColor3 = C.gold, ZIndex = 13,
 })
+
+local statusDot = make("Frame", header, {
+    Name = "StatusDot",
+    AnchorPoint = Vector2.new(0, 0.5),
+    Position = UDim2.new(0, 29, 0, 68),
+    Size = UDim2.fromOffset(6, 6),
+    BackgroundColor3 = C.energy,
+    BackgroundTransparency = 0.1,
+    BorderSizePixel = 0,
+    ZIndex = 14,
+})
+round(statusDot, 6)
+local statusDotGlow = make("UIStroke", statusDot, {
+    Color = C.energy, Transparency = 0.5, Thickness = 2.5,
+    ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+})
+local statusText = label(header, "SECURE CONNECTION", 9, {
+    Position = UDim2.new(0, 40, 0, 61),
+    Size = UDim2.new(0.5, -42, 0, 14),
+    TextColor3 = C.energy, ZIndex = 14,
+})
+
 local headerRule = make("Frame", panel, {
     Position = UDim2.new(0, 25, 0, 87), Size = UDim2.new(1, -50, 0, 1),
     BackgroundColor3 = C.gold, BorderSizePixel = 0, ZIndex = 11,
 })
 gradient(headerRule, {C.bronze, C.gold, C.pale, C.gold, C.bronze}, 0)
+
+local headerRuleCyan = make("Frame", panel, {
+    Position = UDim2.new(0, 25, 0, 88), Size = UDim2.new(1, -50, 0, 1),
+    BackgroundColor3 = C.cyan, BackgroundTransparency = 0.7,
+    BorderSizePixel = 0, ZIndex = 11,
+})
+gradient(headerRuleCyan, {C.dark, C.cyan, C.pale, C.cyan, C.dark}, 0)
+
 local close = make("TextButton", header, {
     Text = "×", FontFace = bodyFont, TextSize = 26,
-    TextColor3 = C.pale, BackgroundColor3 = Color3.fromRGB(80, 63, 50),
+    TextColor3 = C.pale, BackgroundColor3 = Color3.fromRGB(26, 43, 65),
     AutoButtonColor = false, Size = UDim2.fromOffset(34, 34),
     Position = UDim2.new(1, -58, 0, 22), ZIndex = 14,
 })
@@ -420,7 +830,7 @@ local back = make("TextButton", header, {
     TextColor3 = C.gold, TextXAlignment = Enum.TextXAlignment.Center,
     BackgroundColor3 = Color3.fromRGB(52, 69, 86),
     AutoButtonColor = false, Size = UDim2.fromOffset(82, 30),
-    Position = UDim2.new(1, -150, 0, 24),
+    Position = UDim2.new(1, -190, 0, 24),
     Visible = false, ZIndex = 14,
 })
 round(back, 8)
@@ -440,17 +850,48 @@ local footerText = label(footer, "L  /  TOGGLE PANEL       •       ESC  /  CLO
     Position = UDim2.fromOffset(26, 10), Size = UDim2.new(1, -52, 0, 22),
     TextColor3 = C.muted, TextXAlignment = Enum.TextXAlignment.Center,
 })
+
 local toast = make("CanvasGroup", panel, {
     Name = "Toast", AnchorPoint = Vector2.new(0.5, 1),
     Position = UDim2.new(0.5, 0, 1, -49), Size = UDim2.fromOffset(320, 38),
-    BackgroundColor3 = Color3.fromRGB(54, 74, 95), BorderSizePixel = 0,
+    BackgroundColor3 = Color3.fromRGB(14, 28, 42), BorderSizePixel = 0,
     GroupTransparency = 1, Visible = false, ZIndex = 23,
 })
 round(toast, 10)
-stroke(toast, 0.3)
+local toastBorder = make("UIStroke", toast, {
+    Color = C.cyan, Transparency = 0.3, Thickness = 1.3,
+    ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+})
+local toastGlowBorder = make("UIStroke", toast, {
+    Color = C.cyan, Transparency = 0.7, Thickness = 3.5,
+    ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+})
+local toastAccent = make("Frame", toast, {
+    Name = "ToastAccent",
+    Size = UDim2.new(0, 3, 1, -6),
+    Position = UDim2.fromOffset(5, 3),
+    BackgroundColor3 = C.cyan,
+    BackgroundTransparency = 0.1,
+    BorderSizePixel = 0,
+    ZIndex = 24,
+})
+round(toastAccent, 3)
+
+local toastStarIcon = make("ImageLabel", toast, {
+    AnchorPoint = Vector2.new(0, 0.5),
+    Position = UDim2.new(0, 13, 0.5, 0),
+    Size = UDim2.fromOffset(16, 16),
+    BackgroundTransparency = 1,
+    Image = "rbxassetid://14488863746",
+    ImageColor3 = C.gold,
+    ImageTransparency = 0.1,
+    ScaleType = Enum.ScaleType.Fit,
+    ZIndex = 25,
+})
+
 local toastText = label(toast, "", 12, {
-    Position = UDim2.fromOffset(12, 0), Size = UDim2.new(1, -24, 1, 0),
-    TextXAlignment = Enum.TextXAlignment.Center, ZIndex = 24,
+    Position = UDim2.fromOffset(34, 0), Size = UDim2.new(1, -46, 1, 0),
+    TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 24,
 })
 local function notify(message, success)
     toastToken = toastToken + 1
@@ -459,6 +900,10 @@ local function notify(message, success)
     toastText.TextColor3 = success == false and Color3.fromRGB(255, 150, 130) or C.white
     local toastGold = toastText:FindFirstChildOfClass("UIGradient")
     if toastGold then toastGold.Enabled = success ~= false end
+    toastBorder.Color = success == false and Color3.fromRGB(255, 100, 80) or C.cyan
+    toastGlowBorder.Color = success == false and Color3.fromRGB(255, 80, 60) or C.cyan
+    toastAccent.BackgroundColor3 = success == false and Color3.fromRGB(255, 100, 80) or C.cyan
+    toastStarIcon.ImageColor3 = success == false and Color3.fromRGB(255, 150, 130) or C.gold
     toast.Visible = true
     tween(toast, {GroupTransparency = 0}, 0.17)
     task.delay(2.6, function()
@@ -485,13 +930,13 @@ for i = 0, 3 do
     })
 end
 local landing = pages[0]
-local landingTop = label(landing, "SELECT A CONTROL REGION", 13, {
+local landingTop = label(landing, "MODULE DIRECTORY", 16, {
     Size = UDim2.new(1, 0, 0, 24), TextColor3 = C.pale,
 })
-local landingHint = label(landing, "03 MODULES   /   SECURE VISUAL INTERFACE", 10, {
+local landingHint = label(landing, "03 MODULES  /  SELECT A CONTROL REGION", 10, {
     Position = UDim2.fromOffset(0, 26), Size = UDim2.new(1, 0, 0, 22), TextColor3 = C.muted,
 })
-local landingBottom = label(landing, "THE COURAGE PANLT   /   AUXILIARY PANEL CONSOLE", 10, {
+local landingBottom = label(landing, "NEXUS / 07     •     OVERDRIVE INTERFACE", 10, {
     AnchorPoint = Vector2.new(0.5, 1), Position = UDim2.fromScale(0.5, 0.98),
     Size = UDim2.new(1, 0, 0, 20), TextXAlignment = Enum.TextXAlignment.Center,
     TextColor3 = C.muted,
@@ -503,30 +948,50 @@ local function makeCategory(index, name, detail, asset)
         BackgroundTransparency = 0.09,
         AutoButtonColor = false, ClipsDescendants = true, ZIndex = 14,
     })
-    round(button, 13)
+    round(button, 8)
+    local accent = ({C.cyan, C.plasma, C.energy})[index]
     gradient(button, {
-        Color3.fromRGB(160, 128, 85),
-        Color3.fromRGB(83, 75, 69),
-        Color3.fromRGB(58, 50, 48),
+        Color3.fromRGB(17, 37, 57),
+        Color3.fromRGB(7, 16, 32),
+        accent:Lerp(C.dark, 0.76),
     }, 115)
     local outline = stroke(button, 0.03, 2.15)
     metal(outline)
+
+    local cyanOutline = make("UIStroke", button, {
+        Color = accent, Transparency = 0.48, Thickness = 1.1,
+        ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+    })
+
     local picture = make("ImageLabel", button, {
         Name = "AnimatedPicture", Image = asset,
         Size = UDim2.fromScale(1.13, 1.13), Position = UDim2.fromScale(-0.065, -0.065),
-        BackgroundTransparency = 1, ImageTransparency = 0.16,
-        ImageColor3 = Color3.fromRGB(255, 250, 232),
+        BackgroundTransparency = 1, ImageTransparency = 0.46,
+        ImageColor3 = accent:Lerp(C.white, 0.6),
         ScaleType = Enum.ScaleType.Crop, ZIndex = 15,
     })
     local tint = make("Frame", button, {
-        Size = UDim2.fromScale(1, 1), BackgroundColor3 = Color3.fromRGB(62, 38, 22),
+        Size = UDim2.fromScale(1, 1), BackgroundColor3 = Color3.fromRGB(5, 11, 25),
         BorderSizePixel = 0, ZIndex = 16,
     })
     gradient(tint, {C.white, C.white}, 90, NumberSequence.new({
         NumberSequenceKeypoint.new(0, 1),
-        NumberSequenceKeypoint.new(0.62, 0.98),
-        NumberSequenceKeypoint.new(1, 0.70),
+        NumberSequenceKeypoint.new(0.42, 0.78),
+        NumberSequenceKeypoint.new(1, 0.06),
     }))
+
+    local sigilCorner = make("ImageLabel", button, {
+        AnchorPoint = Vector2.new(1, 0),
+        Position = UDim2.new(1, -6, 0, 6),
+        Size = UDim2.fromOffset(28, 28),
+        BackgroundTransparency = 1,
+        Image = "rbxassetid://14488863746",
+        ImageColor3 = C.gold,
+        ImageTransparency = 0.5,
+        ScaleType = Enum.ScaleType.Fit,
+        ZIndex = 20,
+    })
+
     label(button, string.format("0%d  /  MODULE", index), 10, {
         Position = UDim2.fromOffset(15, 10), Size = UDim2.new(1, -26, 0, 20),
         TextColor3 = C.ice, ZIndex = 18,
@@ -550,20 +1015,78 @@ local function makeCategory(index, name, detail, asset)
         NumberSequenceKeypoint.new(0, 1), NumberSequenceKeypoint.new(0.5, 0.1),
         NumberSequenceKeypoint.new(1, 1),
     }))
+
+    local hoverFlash = make("Frame", button, {
+        Size = UDim2.fromScale(1, 1),
+        BackgroundColor3 = C.cyan,
+        BackgroundTransparency = 1,
+        BorderSizePixel = 0,
+        ZIndex = 21,
+    })
+    round(hoverFlash, 13)
+
     local scale = make("UIScale", button, {Scale = 1})
     connect(button.MouseEnter, function()
         tween(scale, {Scale = 1.025}, 0.2)
         tween(outline, {Transparency = 0, Thickness = 2.8}, 0.2)
-        tween(picture, {ImageTransparency = 0.07}, 0.2)
+        tween(cyanOutline, {Transparency = 0.1, Thickness = 1.5}, 0.2)
+        tween(picture, {ImageTransparency = 0.27}, 0.2)
+        tween(hoverFlash, {BackgroundTransparency = 0.94}, 0.15)
+        tween(sigilCorner, {ImageTransparency = 0.1, Rotation = 45}, 0.3)
     end)
     connect(button.MouseLeave, function()
         tween(scale, {Scale = 1}, 0.22)
         tween(outline, {Transparency = 0.03, Thickness = 2.15}, 0.2)
-        tween(picture, {ImageTransparency = 0.16}, 0.2)
+        tween(cyanOutline, {Transparency = 0.48, Thickness = 1.1}, 0.2)
+        tween(picture, {ImageTransparency = 0.46}, 0.2)
+        tween(hoverFlash, {BackgroundTransparency = 1}, 0.25)
+        tween(sigilCorner, {ImageTransparency = 0.5, Rotation = 0}, 0.3)
     end)
-    connect(button.MouseButton1Down, function() tween(scale, {Scale = 0.965}, 0.09) end)
-    connect(button.MouseButton1Up, function() tween(scale, {Scale = 1.025}, 0.12) end)
-    table.insert(animatedImages, {picture = picture, scan = scanner, index = index})
+    connect(button.MouseButton1Down, function()
+        tween(scale, {Scale = 0.965}, 0.09)
+        tween(hoverFlash, {BackgroundTransparency = 0.86}, 0.06)
+    end)
+    connect(button.MouseButton1Up, function()
+        tween(scale, {Scale = 1.025}, 0.12)
+        tween(hoverFlash, {BackgroundTransparency = 0.94}, 0.1)
+    end)
+    local core = make("ImageLabel", button, {
+        Name = "ModuleCore", AnchorPoint = Vector2.new(0.5, 0.5),
+        Position = index == 1 and UDim2.fromScale(0.5, 0.43) or UDim2.new(1, -66, 0.5, -5),
+        Size = index == 1 and UDim2.fromOffset(156, 156) or UDim2.fromOffset(84, 84),
+        BackgroundTransparency = 1, Image = "rbxassetid://12549667544",
+        ImageColor3 = accent, ImageTransparency = 0.34, ScaleType = Enum.ScaleType.Fit,
+        ZIndex = 17,
+    })
+    local bezel = make("Frame", button, {
+        AnchorPoint = Vector2.new(0.5, 0.5), Position = core.Position,
+        Size = index == 1 and UDim2.fromOffset(175, 175) or UDim2.fromOffset(97, 97),
+        BackgroundTransparency = 1, ZIndex = 17,
+    })
+    round(bezel, 100)
+    local bezelEdge = stroke(bezel, 0.58, 1)
+    bezelEdge.Color = accent
+    for i = 1, 12 do
+        local theta = (i - 1) * math.pi / 6
+        make("Frame", bezel, {
+            AnchorPoint = Vector2.new(0.5, 0.5),
+            Position = UDim2.fromScale(0.5 + math.cos(theta) * 0.47, 0.5 + math.sin(theta) * 0.47),
+            Size = UDim2.fromOffset(i % 3 == 1 and 10 or 5, 2), Rotation = math.deg(theta),
+            BackgroundColor3 = accent, BackgroundTransparency = i % 3 == 1 and 0.1 or 0.45,
+            BorderSizePixel = 0, ZIndex = 17,
+        })
+    end
+    make("Frame", button, {
+        Position = UDim2.fromOffset(0, 35), Size = UDim2.fromOffset(3, 42),
+        BackgroundColor3 = accent, BorderSizePixel = 0, ZIndex = 20,
+    })
+    local rail = make("Frame", button, {
+        AnchorPoint = Vector2.new(0, 1), Position = UDim2.new(0, 15, 1, -5),
+        Size = UDim2.new(1, -30, 0, 2), BackgroundColor3 = accent,
+        BackgroundTransparency = 0.25, BorderSizePixel = 0, ZIndex = 20,
+    })
+    gradient(rail, {accent, C.white, accent}, 0)
+    table.insert(animatedImages, {picture = picture, scan = scanner, index = index, sigil = sigilCorner, core = core, bezel = bezel})
     return {button = button, title = nameText, detail = detailText}
 end
 local categories = {
@@ -588,11 +1111,43 @@ local function actionBox(page, code, heading, description)
         BackgroundColor3 = Color3.new(1, 1, 1), BackgroundTransparency = 0.11,
         Size = UDim2.fromOffset(300, 140), ClipsDescendants = true,
     })
-    round(btn, 13)
+    round(btn, 8)
     local border = stroke(btn, 0.04, 2)
     metal(border)
-    gradient(btn, {Color3.fromRGB(100, 82, 65), Color3.fromRGB(54, 52, 52),
-        Color3.fromRGB(115, 78, 48)}, 15)
+    gradient(btn, {Color3.fromRGB(19, 37, 57), Color3.fromRGB(8, 18, 33),
+        Color3.fromRGB(27, 30, 52)}, 15)
+
+    local cyanEdge = make("UIStroke", btn, {
+        Color = C.cyan, Transparency = 0.9, Thickness = 0.9,
+        ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+    })
+
+    local btnScanLine = make("Frame", btn, {
+        Size = UDim2.new(1, 0, 0, 2),
+        Position = UDim2.fromScale(0, -0.02),
+        BackgroundColor3 = C.cyan,
+        BackgroundTransparency = 0.5,
+        BorderSizePixel = 0,
+        ZIndex = 20,
+    })
+    local btnScanGrad = Instance.new("UIGradient")
+    btnScanGrad.Transparency = NumberSequence.new({
+        NumberSequenceKeypoint.new(0, 1),
+        NumberSequenceKeypoint.new(0.3, 0.1),
+        NumberSequenceKeypoint.new(0.7, 0.1),
+        NumberSequenceKeypoint.new(1, 1),
+    })
+    btnScanGrad.Parent = btnScanLine
+
+    local flashOverlay = make("Frame", btn, {
+        Size = UDim2.fromScale(1, 1),
+        BackgroundColor3 = C.cyan,
+        BackgroundTransparency = 1,
+        BorderSizePixel = 0,
+        ZIndex = 22,
+    })
+    round(flashOverlay, 13)
+
     local num = label(btn, code, 12, {
         Position = UDim2.fromOffset(17, 11), Size = UDim2.new(1, -34, 0, 18),
         TextColor3 = C.ice, ZIndex = 17,
@@ -606,17 +1161,42 @@ local function actionBox(page, code, heading, description)
         TextWrapped = true, TextTruncate = Enum.TextTruncate.None,
         TextYAlignment = Enum.TextYAlignment.Top, TextColor3 = C.muted, ZIndex = 17,
     })
+    make("Frame", btn, {
+        Position = UDim2.fromOffset(0, 14), Size = UDim2.fromOffset(3, 40),
+        BackgroundColor3 = C.cyan, BorderSizePixel = 0, ZIndex = 19,
+    })
+    local chip = make("Frame", btn, {
+        AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -13, 0, 12),
+        Size = UDim2.fromOffset(29, 12), BackgroundTransparency = 1, ZIndex = 19,
+    })
+    for i = 1, 3 do
+        make("Frame", chip, {
+            Position = UDim2.fromOffset((i - 1) * 10, 2), Size = UDim2.fromOffset(6, 8),
+            BackgroundColor3 = C.ice, BackgroundTransparency = 0.18 + i * 0.15,
+            BorderSizePixel = 0, Rotation = -22, ZIndex = 19,
+        })
+    end
     local scale = make("UIScale", btn, {Scale = 1})
     connect(btn.MouseEnter, function()
         tween(scale, {Scale = 1.016}, 0.17)
         tween(border, {Transparency = 0}, 0.17)
+        tween(cyanEdge, {Transparency = 0.65, Thickness = 1.3}, 0.2)
+        tween(flashOverlay, {BackgroundTransparency = 0.93}, 0.15)
     end)
     connect(btn.MouseLeave, function()
         tween(scale, {Scale = 1}, 0.17)
         tween(border, {Transparency = 0.04}, 0.17)
+        tween(cyanEdge, {Transparency = 0.9, Thickness = 0.9}, 0.2)
+        tween(flashOverlay, {BackgroundTransparency = 1}, 0.25)
     end)
-    connect(btn.MouseButton1Down, function() tween(scale, {Scale = 0.977}, 0.09) end)
-    connect(btn.MouseButton1Up, function() tween(scale, {Scale = 1}, 0.12) end)
+    connect(btn.MouseButton1Down, function()
+        tween(scale, {Scale = 0.977}, 0.09)
+        tween(flashOverlay, {BackgroundTransparency = 0.82}, 0.07)
+    end)
+    connect(btn.MouseButton1Up, function()
+        tween(scale, {Scale = 1}, 0.12)
+        tween(flashOverlay, {BackgroundTransparency = 0.93}, 0.1)
+    end)
     return btn, desc, headingText, border
 end
 
@@ -987,28 +1567,13 @@ local monsterEnabled = false
 local monsterConnection = nil
 local monsterArtifacts = setmetatable({}, {__mode = "k"})
 local workspaceModels = {
-    AmbushMoving = true,
-    RushMoving = true,
-    BackdoorRush = true,
-    BackdoorLookman = true,
-    LiveEntityBramble = true,
-    MonumentEntity = true,
-    Drones = true,
-    DronesStampede = true,
-    BashMoving = true,
-    Scribbles = true,
-    A60 = true,
-    A120 = true,
+    AmbushMoving = true, RushMoving = true, BackdoorRush = true,
+    BackdoorLookman = true, LiveEntityBramble = true, MonumentEntity = true,
+    Drones = true, DronesStampede = true, BashMoving = true, Scribbles = true,
+    A60 = true, A120 = true,
 }
-local liveEntitiesModels = {
-    Creak = true,
-    TellerRig = true,
-}
-local currentRoomsModels = {
-    FigureRig = true,
-    Groundskeeper = true,
-    TV_Stand = true,
-}
+local liveEntitiesModels = {Creak = true, TellerRig = true}
+local currentRoomsModels = {FigureRig = true, Groundskeeper = true, TV_Stand = true}
 
 local function setMonsterButtonState(enabled)
     monsterGradient.Color = enabled and ColorSequence.new({
@@ -1033,9 +1598,7 @@ end
 local function inMonsterFolder(obj, folderName)
     local parent = obj.Parent
     while parent and parent ~= workspace do
-        if parent.Name == folderName and parent.Parent == workspace then
-            return true
-        end
+        if parent.Name == folderName and parent.Parent == workspace then return true end
         parent = parent.Parent
     end
     return false
@@ -1051,7 +1614,6 @@ end
 
 local function addMonsterESP(obj)
     if not monsterEnabled or not isMonsterTarget(obj) then return end
-
     if not obj:FindFirstChild("EntityHighlight") then
         local highlight = Instance.new("Highlight")
         highlight.Name = "EntityHighlight"
@@ -1064,7 +1626,6 @@ local function addMonsterESP(obj)
         highlight.Parent = obj
         monsterArtifacts[highlight] = true
     end
-
     local billboard = obj:FindFirstChild("EntityBillboard")
     if not billboard then
         billboard = Instance.new("BillboardGui")
@@ -1074,7 +1635,6 @@ local function addMonsterESP(obj)
         billboard.AlwaysOnTop = true
         billboard.LightInfluence = 0
         billboard.MaxDistance = 0
-
         local icon = Instance.new("ImageLabel")
         icon.Name = "EntityIcon"
         icon.Size = UDim2.fromScale(1, 1)
@@ -1082,11 +1642,9 @@ local function addMonsterESP(obj)
         icon.Image = "rbxassetid://95001390542167"
         icon.ScaleType = Enum.ScaleType.Fit
         icon.Parent = billboard
-
         billboard.Parent = obj
         monsterArtifacts[billboard] = true
     end
-
     if billboard:IsA("BillboardGui") and not billboard.Adornee then
         billboard.Adornee = obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart", true)
     end
@@ -1175,7 +1733,6 @@ connect(deleteScreechButton.Activated, function()
         end
     end)
 end)
-
 featureUI.deleteScreechButton = deleteScreechButton
 featureUI.deleteScreechHeading = deleteScreechHeading
 end
@@ -1197,30 +1754,12 @@ local reminderActiveFrame = nil
 local reminderActiveRotation = nil
 local reminderActiveShine = nil
 local reminderTargets = {
-    Rebound = true,
-    Shocker = true,
-    ["Deer God"] = true,
-    ["Z-367"] = true,
-    Ripper = true,
-    Silence = true,
-    Angler = true,
-    Muffler = true,
-    WH1T3 = true,
-    Obsession = true,
-    Kitty = true,
-    Hunger = true,
-    Him = true,
-    ["Grandfather Clock"] = true,
-    Depth = true,
-    ["A-200"] = true,
-    Cease = true,
-    Happy = true,
-    Bite = true,
-    Principal = true,
-    A120_Scribblet = true,
-    Mushcore = true,
-    SilenceRemake = true,
-    Frostbite = true,
+    Rebound = true, Shocker = true, ["Deer God"] = true, ["Z-367"] = true,
+    Ripper = true, Silence = true, Angler = true, Muffler = true, WH1T3 = true,
+    Obsession = true, Kitty = true, Hunger = true, Him = true,
+    ["Grandfather Clock"] = true, Depth = true, ["A-200"] = true, Cease = true,
+    Happy = true, Bite = true, Principal = true, A120_Scribblet = true,
+    Mushcore = true, SilenceRemake = true, Frostbite = true,
 }
 
 local function setReminderButtonState(enabled)
@@ -1464,9 +2003,114 @@ connect(sprintButton.Activated, function()
         end
     end)
 end)
-
 featureUI.sprintButton = sprintButton
 featureUI.sprintHeading = sprintHeading
+end
+
+do
+local jumpButton, jumpDescription, jumpHeading, jumpBorder = actionBox(
+    pages[1], "08 / MOVEMENT", "Enable Jumping", "Enable jumping when clicked"
+)
+local jumpGradient = jumpButton:FindFirstChildOfClass("UIGradient")
+local jumpOriginalGradient = jumpGradient.Color
+local jumpBorderGradient = jumpBorder:FindFirstChildOfClass("UIGradient")
+local EnableJump = false
+local InfiniteJumps = false
+local JumpPower = 50
+local Humanoid
+local jumpBackup
+local characterConnection, requestConnection
+local jumpToken = 0
+
+local function setJumpButtonState(enabled)
+    jumpGradient.Color = enabled and ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(11, 69, 44)),
+        ColorSequenceKeypoint.new(0.44, Color3.fromRGB(37, 151, 77)),
+        ColorSequenceKeypoint.new(0.72, Color3.fromRGB(22, 116, 65)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(9, 65, 42)),
+    }) or jumpOriginalGradient
+    jumpButton.BackgroundTransparency = enabled and 0.01 or 0.11
+    jumpBorderGradient.Enabled = not enabled
+    jumpBorder.Color = enabled and Color3.fromRGB(116, 255, 150) or C.gold
+    tween(jumpBorder, {Thickness = enabled and 2.9 or 2}, 0.2)
+    for _, child in ipairs(jumpButton:GetChildren()) do
+        if child:IsA("TextLabel") then
+            local gold = child:FindFirstChildOfClass("UIGradient")
+            if gold then gold.Enabled = not enabled end
+            child.TextColor3 = enabled and Color3.fromRGB(230, 255, 230) or C.white
+        end
+    end
+end
+
+local function restoreJump()
+    local backup = jumpBackup
+    jumpBackup = nil
+    Humanoid = nil
+    if not backup then return end
+    if backup.character.Parent then
+        backup.character:SetAttribute("CanJump", backup.canJump)
+    end
+    if backup.humanoid.Parent then
+        backup.humanoid.UseJumpPower = backup.useJumpPower
+        backup.humanoid.JumpPower = backup.jumpPower
+        backup.humanoid:SetStateEnabled(Enum.HumanoidStateType.Jumping, backup.jumping)
+    end
+end
+
+local function SetupCharacter(Character)
+    local token = jumpToken
+    local hum = Character:WaitForChild("Humanoid", 10)
+    if not hum or not hum:IsA("Humanoid") or not EnableJump or token ~= jumpToken or player.Character ~= Character then return end
+    if Humanoid == hum then return end
+    restoreJump()
+    jumpBackup = {
+        character = Character,
+        humanoid = hum,
+        canJump = Character:GetAttribute("CanJump"),
+        useJumpPower = hum.UseJumpPower,
+        jumpPower = hum.JumpPower,
+        jumping = hum:GetStateEnabled(Enum.HumanoidStateType.Jumping),
+    }
+    Humanoid = hum
+    Character:SetAttribute("CanJump", true)
+    hum.UseJumpPower = true
+    hum.JumpPower = JumpPower
+    hum:SetStateEnabled(Enum.HumanoidStateType.Jumping, true)
+end
+
+local function disableJump()
+    EnableJump = false
+    jumpToken = jumpToken + 1
+    if characterConnection then characterConnection:Disconnect() characterConnection = nil end
+    if requestConnection then requestConnection:Disconnect() requestConnection = nil end
+    restoreJump()
+    setJumpButtonState(false)
+end
+
+connect(jumpButton.Activated, function()
+    clickSound()
+    if EnableJump then
+        disableJump()
+        notify("JUMPING / Disabled", true)
+        return
+    end
+    EnableJump = true
+    jumpToken = jumpToken + 1
+    setJumpButtonState(true)
+    characterConnection = player.CharacterAdded:Connect(SetupCharacter)
+    requestConnection = UIS.JumpRequest:Connect(function()
+        if not EnableJump or not Humanoid or not Humanoid.Parent or Humanoid.Health <= 0 then return end
+        if Humanoid.Parent ~= player.Character then return end
+        if InfiniteJumps or Humanoid.FloorMaterial ~= Enum.Material.Air then
+            Humanoid.Jump = true
+            Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+        end
+    end)
+    if player.Character then task.spawn(SetupCharacter, player.Character) end
+    notify("JUMPING / Enabled", true)
+end)
+featureUI.jumpButton = jumpButton
+featureStop.jump = disableJump
 end
 
 local overviewScroll = make("ScrollingFrame", pages[1], {
@@ -1484,6 +2128,7 @@ featureUI.monsterButton.Parent = overviewScroll
 featureUI.deleteScreechButton.Parent = overviewScroll
 featureUI.reminderButton.Parent = overviewScroll
 featureUI.sprintButton.Parent = overviewScroll
+featureUI.jumpButton.Parent = overviewScroll
 
 sectionHeader(pages[2], "UTILITY MODULES", "02 / SELECT A CLIENT TOOL")
 local dexButton = actionBox(pages[2], "01 / EXPLORER", "Dex", "The ability to edit everything")
@@ -1498,8 +2143,8 @@ local toolsScroll = make("ScrollingFrame", pages[2], {
 })
 dexButton.Parent = toolsScroll
 nvButton.Parent = toolsScroll
-local toolsNote = label(toolsScroll, "TOOLS REQUIRE AN ENVIRONMENT SUPPORTING loadstring + HttpGet.", 10, {
-    Size = UDim2.new(1, -8, 0, 24), TextColor3 = C.muted,
+local toolsNote = label(pages[2], "TOOLS REQUIRE AN ENVIRONMENT SUPPORTING loadstring + HttpGet.", 10, {
+    Position = UDim2.fromOffset(0, 55), Size = UDim2.new(1, -8, 0, 12), TextColor3 = C.muted,
     TextXAlignment = Enum.TextXAlignment.Center,
 })
 
@@ -1563,15 +2208,11 @@ local function launchHealthBar()
     local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
     local OldGui = PlayerGui:FindFirstChild("PlayerHealthUI")
-    if OldGui then
-        OldGui:Destroy()
-    end
+    if OldGui then OldGui:Destroy() end
 
     local function Create(className, properties, parent)
         local instance = Instance.new(className)
-        for key, value in pairs(properties) do
-            instance[key] = value
-        end
+        for key, value in pairs(properties) do instance[key] = value end
         instance.Parent = parent
         return instance
     end
@@ -1582,9 +2223,7 @@ local function launchHealthBar()
 
     local function Animate(object, duration, properties)
         local tween = TweenService:Create(
-            object,
-            TweenInfo.new(duration, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-            properties
+            object, TweenInfo.new(duration, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), properties
         )
         tween:Play()
         return tween
@@ -1602,11 +2241,8 @@ local function launchHealthBar()
     })
 
     local ScreenGui = Create("ScreenGui", {
-        Name = "PlayerHealthUI",
-        ResetOnSpawn = false,
-        IgnoreGuiInset = true,
-        DisplayOrder = 900,
-        ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+        Name = "PlayerHealthUI", ResetOnSpawn = false, IgnoreGuiInset = true,
+        DisplayOrder = 900, ZIndexBehavior = Enum.ZIndexBehavior.Sibling
     }, PlayerGui)
 
     local Viewport = workspace.CurrentCamera and workspace.CurrentCamera.ViewportSize or Vector2.new(1280, 720)
@@ -1614,85 +2250,58 @@ local function launchHealthBar()
     local BaseHeight = 405
     local InitialScale = math.clamp(math.min(1, (Viewport.X - 24) / BaseWidth, (Viewport.Y - 90) / BaseHeight), 0.65, 1)
 
-    local Main = Create("Frame", {
+    local Main = Create("CanvasGroup", {
         Name = "GoldenVitals",
         Position = UDim2.fromOffset(math.max(6, Viewport.X - BaseWidth * InitialScale - 22), 72),
         Size = UDim2.fromOffset(BaseWidth, BaseHeight),
         BackgroundColor3 = Color3.fromRGB(20, 18, 22),
-        BackgroundTransparency = 1,
-        BorderSizePixel = 0,
-        ClipsDescendants = false,
-        Active = true,
-        ZIndex = 2
+        BackgroundTransparency = 1, BorderSizePixel = 0,
+        ClipsDescendants = true, Active = true, ZIndex = 2
     }, ScreenGui)
     Round(Main, 17)
 
     local Scale = Create("UIScale", {Scale = InitialScale}, Main)
 
     local HeaderBackdrop = Create("Frame", {
-        Name = "HeaderBackdrop",
-        Position = UDim2.fromOffset(0, 0),
-        Size = UDim2.new(1, 0, 0, 114),
-        BackgroundColor3 = Color3.fromRGB(24, 21, 23),
-        BackgroundTransparency = 1,
-        BorderSizePixel = 0,
-        ZIndex = 3
+        Name = "HeaderBackdrop", Position = UDim2.fromOffset(0, 0),
+        Size = UDim2.new(1, 0, 0, 114), BackgroundColor3 = Color3.fromRGB(24, 21, 23),
+        BackgroundTransparency = 1, BorderSizePixel = 0, ZIndex = 3
     }, Main)
     Round(HeaderBackdrop, 17)
-
     Create("UIGradient", {
         Color = ColorSequence.new({
             ColorSequenceKeypoint.new(0, Color3.fromRGB(39, 30, 29)),
             ColorSequenceKeypoint.new(0.55, Color3.fromRGB(19, 19, 26)),
             ColorSequenceKeypoint.new(1, Color3.fromRGB(31, 24, 24))
-        }),
-        Rotation = 35
+        }), Rotation = 35
     }, HeaderBackdrop)
 
     local OuterGlow = Create("UIStroke", {
-        Color = Color3.fromRGB(220, 145, 55),
-        Thickness = 7,
-        Transparency = 0.9
+        Color = Color3.fromRGB(220, 145, 55), Thickness = 7, Transparency = 0.9
     }, Main)
-
     local Border = Create("UIStroke", {
-        Color = Gold,
-        Thickness = 1.8,
-        Transparency = 0.05
+        Color = Gold, Thickness = 1.8, Transparency = 0.05
     }, Main)
-
     local BorderGradient = Create("UIGradient", {
-        Color = GoldSequence,
-        Rotation = 20,
-        Offset = Vector2.new(-0.65, 0)
+        Color = GoldSequence, Rotation = 20, Offset = Vector2.new(-0.65, 0)
     }, Border)
 
     local Header = Create("Frame", {
-        Name = "DragHeader",
-        Position = UDim2.fromOffset(0, 0),
-        Size = UDim2.new(1, 0, 0, 80),
-        BackgroundTransparency = 1,
-        Active = true,
-        ZIndex = 4
+        Name = "DragHeader", Position = UDim2.fromOffset(0, 0),
+        Size = UDim2.new(1, 0, 0, 80), BackgroundTransparency = 1, Active = true, ZIndex = 4
     }, Main)
 
     local TopLine = Create("Frame", {
-        Position = UDim2.fromOffset(16, 6),
-        Size = UDim2.new(1, -32, 0, 3),
-        BorderSizePixel = 0,
-        BackgroundColor3 = PaleGold,
-        ZIndex = 5
+        Position = UDim2.fromOffset(16, 6), Size = UDim2.new(1, -32, 0, 3),
+        BorderSizePixel = 0, BackgroundColor3 = PaleGold, ZIndex = 5
     }, Header)
     Round(TopLine, 3)
     Create("UIGradient", {Color = GoldSequence, Rotation = 0}, TopLine)
 
     local Emblem = Create("Frame", {
-        Position = UDim2.fromOffset(16, 23),
-        Size = UDim2.fromOffset(42, 42),
-        BackgroundColor3 = Color3.fromRGB(62, 42, 26),
-        BackgroundTransparency = 1,
-        BorderSizePixel = 0,
-        ZIndex = 5
+        Position = UDim2.fromOffset(16, 23), Size = UDim2.fromOffset(42, 42),
+        BackgroundColor3 = Color3.fromRGB(62, 42, 26), BackgroundTransparency = 1,
+        BorderSizePixel = 0, ZIndex = 5
     }, Header)
     Round(Emblem, 13)
     Create("UIStroke", {Color = Gold, Thickness = 1.1, Transparency = 0.25}, Emblem)
@@ -1700,578 +2309,362 @@ local function launchHealthBar()
         Color = ColorSequence.new(Color3.fromRGB(84, 58, 32), Color3.fromRGB(35, 29, 32)),
         Rotation = 50
     }, Emblem)
-
     Create("TextLabel", {
-        Size = UDim2.fromScale(1, 1),
-        BackgroundTransparency = 1,
-        Text = "✦",
-        TextColor3 = PaleGold,
-        Font = Enum.Font.GothamBold,
-        TextSize = 27,
-        ZIndex = 6
+        Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Text = "✦",
+        TextColor3 = PaleGold, Font = Enum.Font.GothamBold, TextSize = 27, ZIndex = 6
     }, Emblem)
 
     local Title = Create("TextLabel", {
-        Position = UDim2.fromOffset(69, 22),
-        Size = UDim2.fromOffset(172, 24),
-        BackgroundTransparency = 1,
-        Text = "Health bar",
-        Font = Enum.Font.GothamBlack,
-        TextSize = 17,
-        TextColor3 = Color3.new(1, 1, 1),
-        TextXAlignment = Enum.TextXAlignment.Left,
-        ZIndex = 5
+        Position = UDim2.fromOffset(69, 22), Size = UDim2.fromOffset(172, 24),
+        BackgroundTransparency = 1, Text = "Health bar", Font = Enum.Font.GothamBlack,
+        TextSize = 17, TextColor3 = Color3.new(1, 1, 1), TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 5
     }, Header)
-
     local TitleGradient = Create("UIGradient", {
-        Color = GoldSequence,
-        Rotation = 12,
-        Offset = Vector2.new(-0.6, 0)
+        Color = GoldSequence, Rotation = 12, Offset = Vector2.new(-0.6, 0)
     }, Title)
-
     Create("TextLabel", {
-        Position = UDim2.fromOffset(69, 46),
-        Size = UDim2.fromOffset(185, 14),
-        BackgroundTransparency = 1,
-        Text = "LIVE PLAYER HEALTH",
-        TextColor3 = MutedGold,
-        TextSize = 10,
-        Font = Enum.Font.GothamMedium,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        ZIndex = 5
+        Position = UDim2.fromOffset(69, 46), Size = UDim2.fromOffset(185, 14),
+        BackgroundTransparency = 1, Text = "LIVE PLAYER HEALTH",
+        TextColor3 = MutedGold, TextSize = 10, Font = Enum.Font.GothamMedium,
+        TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 5
     }, Header)
 
     local CountBadge = Create("Frame", {
-        AnchorPoint = Vector2.new(1, 0),
-        Position = UDim2.new(1, -16, 0, 29),
-        Size = UDim2.fromOffset(84, 27),
-        BackgroundColor3 = Color3.fromRGB(62, 47, 33),
-        BackgroundTransparency = 1,
-        BorderSizePixel = 0,
-        ZIndex = 5
+        AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -16, 0, 29),
+        Size = UDim2.fromOffset(84, 27), BackgroundColor3 = Color3.fromRGB(62, 47, 33),
+        BackgroundTransparency = 1, BorderSizePixel = 0, ZIndex = 5
     }, Header)
     Round(CountBadge, 12)
     Create("UIStroke", {Color = Gold, Transparency = 0.55, Thickness = 1}, CountBadge)
-
     local CountText = Create("TextLabel", {
-        Size = UDim2.fromScale(1, 1),
-        BackgroundTransparency = 1,
-        Text = "0 ONLINE",
-        TextColor3 = PaleGold,
-        TextSize = 10,
-        Font = Enum.Font.GothamBold,
-        ZIndex = 6
+        Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Text = "0 ONLINE",
+        TextColor3 = PaleGold, TextSize = 10, Font = Enum.Font.GothamBold, ZIndex = 6
     }, CountBadge)
 
     Create("Frame", {
-        Position = UDim2.fromOffset(16, 79),
-        Size = UDim2.new(1, -32, 0, 1),
-        BackgroundColor3 = Gold,
-        BackgroundTransparency = 0.72,
-        BorderSizePixel = 0,
-        ZIndex = 4
+        Position = UDim2.fromOffset(16, 79), Size = UDim2.new(1, -32, 0, 1),
+        BackgroundColor3 = Gold, BackgroundTransparency = 0.72, BorderSizePixel = 0, ZIndex = 4
     }, Main)
-
     Create("TextLabel", {
-        Position = UDim2.fromOffset(17, 91),
-        Size = UDim2.fromOffset(175, 19),
-        BackgroundTransparency = 1,
-        Text = "PLAYER STATUS",
-        Font = Enum.Font.GothamBold,
-        TextSize = 11,
-        TextColor3 = Gold,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        ZIndex = 4
+        Position = UDim2.fromOffset(17, 91), Size = UDim2.fromOffset(175, 19),
+        BackgroundTransparency = 1, Text = "PLAYER STATUS", Font = Enum.Font.GothamBold,
+        TextSize = 11, TextColor3 = Gold, TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 4
     }, Main)
-
     Create("TextLabel", {
-        AnchorPoint = Vector2.new(1, 0),
-        Position = UDim2.new(1, -18, 0, 91),
-        Size = UDim2.fromOffset(92, 19),
-        BackgroundTransparency = 1,
-        Text = "HP / MAX HP",
-        Font = Enum.Font.GothamMedium,
-        TextSize = 9,
-        TextColor3 = MutedGold,
-        TextXAlignment = Enum.TextXAlignment.Right,
-        ZIndex = 4
+        AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -18, 0, 91),
+        Size = UDim2.fromOffset(92, 19), BackgroundTransparency = 1, Text = "HP / MAX HP",
+        Font = Enum.Font.GothamMedium, TextSize = 9, TextColor3 = MutedGold,
+        TextXAlignment = Enum.TextXAlignment.Right, ZIndex = 4
     }, Main)
 
     local PlayerScroll = Create("ScrollingFrame", {
-        Name = "PlayerList",
-        Position = UDim2.fromOffset(14, 116),
-        Size = UDim2.new(1, -28, 1, -169),
-        BackgroundTransparency = 1,
-        BorderSizePixel = 0,
-        CanvasSize = UDim2.new(),
-        AutomaticCanvasSize = Enum.AutomaticSize.Y,
-        ScrollBarThickness = 3,
-        ScrollBarImageColor3 = Gold,
-        ScrollingDirection = Enum.ScrollingDirection.Y,
-        ZIndex = 4
+        Name = "PlayerList", Position = UDim2.fromOffset(14, 116),
+        Size = UDim2.new(1, -28, 1, -169), BackgroundTransparency = 1, BorderSizePixel = 0,
+        CanvasSize = UDim2.new(), AutomaticCanvasSize = Enum.AutomaticSize.Y,
+        ScrollBarThickness = 3, ScrollBarImageColor3 = Gold,
+        ScrollingDirection = Enum.ScrollingDirection.Y, ZIndex = 4
     }, Main)
-
     Create("UIPadding", {
-        PaddingTop = UDim.new(0, 3),
-        PaddingBottom = UDim.new(0, 5),
-        PaddingLeft = UDim.new(0, 1),
-        PaddingRight = UDim.new(0, 5)
+        PaddingTop = UDim.new(0, 3), PaddingBottom = UDim.new(0, 5),
+        PaddingLeft = UDim.new(0, 1), PaddingRight = UDim.new(0, 5)
     }, PlayerScroll)
-
     Create("UIListLayout", {
-        Padding = UDim.new(0, 9),
-        SortOrder = Enum.SortOrder.LayoutOrder
+        Padding = UDim.new(0, 9), SortOrder = Enum.SortOrder.LayoutOrder
     }, PlayerScroll)
 
     local Empty = Create("TextLabel", {
-        Name = "EmptyState",
-        Size = UDim2.new(1, 0, 0, 110),
-        BackgroundTransparency = 1,
+        Name = "EmptyState", Size = UDim2.new(1, 0, 0, 110), BackgroundTransparency = 1,
         Text = "NO OTHER PLAYERS\nWaiting for players to join...",
-        TextColor3 = MutedGold,
-        Font = Enum.Font.GothamMedium,
-        TextSize = 12,
-        TextWrapped = true,
-        LineHeight = 1.5,
-        LayoutOrder = -1,
-        ZIndex = 4
+        TextColor3 = MutedGold, Font = Enum.Font.GothamMedium, TextSize = 12,
+        TextWrapped = true, LineHeight = 1.5, LayoutOrder = -1, ZIndex = 4
     }, PlayerScroll)
 
     Create("Frame", {
-        Position = UDim2.new(0, 16, 1, -45),
-        Size = UDim2.new(1, -32, 0, 1),
-        BackgroundColor3 = Gold,
-        BackgroundTransparency = 0.75,
-        BorderSizePixel = 0,
-        ZIndex = 4
+        Position = UDim2.new(0, 16, 1, -45), Size = UDim2.new(1, -32, 0, 1),
+        BackgroundColor3 = Gold, BackgroundTransparency = 0.75, BorderSizePixel = 0, ZIndex = 4
     }, Main)
-
     Create("TextLabel", {
-        Position = UDim2.new(0, 17, 1, -34),
-        Size = UDim2.fromOffset(187, 19),
-        BackgroundTransparency = 1,
-        Text = "DRAG HEADER  ·  RESIZE CORNER",
-        TextColor3 = MutedGold,
-        Font = Enum.Font.GothamMedium,
-        TextSize = 9,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        ZIndex = 4
+        Position = UDim2.new(0, 17, 1, -34), Size = UDim2.fromOffset(187, 19),
+        BackgroundTransparency = 1, Text = "DRAG HEADER  ·  RESIZE CORNER",
+        TextColor3 = MutedGold, Font = Enum.Font.GothamMedium, TextSize = 9,
+        TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 4
     }, Main)
 
     local function MakeSizeButton(symbol, xOffset)
         local button = Create("TextButton", {
-            AnchorPoint = Vector2.new(1, 1),
-            Position = UDim2.new(1, xOffset, 1, -11),
-            Size = UDim2.fromOffset(26, 24),
-            Text = symbol,
-            TextColor3 = PaleGold,
-            TextSize = 17,
-            Font = Enum.Font.GothamBold,
-            BackgroundColor3 = Color3.fromRGB(56, 42, 33),
-            BackgroundTransparency = 1,
-            BorderSizePixel = 0,
-            AutoButtonColor = true,
-            ZIndex = 7
+            AnchorPoint = Vector2.new(1, 1), Position = UDim2.new(1, xOffset, 1, -11),
+            Size = UDim2.fromOffset(26, 24), Text = symbol, TextColor3 = PaleGold,
+            TextSize = 17, Font = Enum.Font.GothamBold,
+            BackgroundColor3 = Color3.fromRGB(56, 42, 33        ), BackgroundTransparency = 1, AutoButtonColor = false, ZIndex = 5
         }, Main)
+        Create("UIStroke", {Color = Gold, Transparency = 0.55, Thickness = 1}, button)
         Round(button, 7)
-        Create("UIStroke", {Color = Gold, Transparency = 0.6, Thickness = 1}, button)
         return button
     end
 
-    local Minus = MakeSizeButton("−", -70)
-    local Plus = MakeSizeButton("+", -40)
+    local CloseBtn = MakeSizeButton("×", -4)
+    local MinBtn = MakeSizeButton("−", -32)
 
-    local ResizeGrip = Create("TextButton", {
-        Name = "ResizeGrip",
-        AnchorPoint = Vector2.new(1, 1),
-        Position = UDim2.new(1, -7, 1, -7),
-        Size = UDim2.fromOffset(29, 29),
-        BackgroundTransparency = 1,
-        Text = "↘",
-        TextColor3 = Gold,
-        TextSize = 23,
-        Font = Enum.Font.GothamBold,
-        AutoButtonColor = false,
-        ZIndex = 9
-    }, Main)
-
-    local function ConstrainPosition(x, y, scale)
-        local camera = workspace.CurrentCamera
-        local viewport = camera and camera.ViewportSize or Vector2.new(1280, 720)
-        return math.clamp(x, 6, math.max(6, viewport.X - BaseWidth * scale - 6)),
-               math.clamp(y, 6, math.max(6, viewport.Y - BaseHeight * scale - 6))
+    local playerRows = {}
+    local function getHumanoid(character)
+        return character and character:FindFirstChildOfClass("Humanoid")
     end
-
-    local function SetScale(value, animated)
-        local camera = workspace.CurrentCamera
-        local viewport = camera and camera.ViewportSize or Vector2.new(1280, 720)
-        local screenMax = math.min((viewport.X - 12) / BaseWidth, (viewport.Y - 12) / BaseHeight)
-        local maximum = math.max(0.55, math.min(1.5, screenMax))
-        local target = math.clamp(value, math.min(0.65, maximum), maximum)
-        local x, y = ConstrainPosition(Main.Position.X.Offset, Main.Position.Y.Offset, target)
-        if animated then
-            Animate(Scale, 0.2, {Scale = target})
-            Animate(Main, 0.2, {Position = UDim2.fromOffset(x, y)})
+    local function healthColor(ratio)
+        if ratio > 0.6 then
+            return Color3.fromRGB(100, 220, 130)
+        elseif ratio > 0.3 then
+            return Color3.fromRGB(240, 190, 60)
         else
-            Scale.Scale = target
-            Main.Position = UDim2.fromOffset(x, y)
+            return Color3.fromRGB(230, 70, 70)
         end
     end
+    local function makeRow(plr)
+        if playerRows[plr] then return end
+        local char = plr.Character
+        local hum = getHumanoid(char)
+        local hp = hum and hum.Health or 0
+        local maxHp = hum and hum.MaxHealth or 100
+        maxHp = maxHp == 0 and 100 or maxHp
+        local ratio = math.clamp(hp / maxHp, 0, 1)
 
-    Minus.MouseButton1Click:Connect(function()
-        SetScale(Scale.Scale - 0.1, true)
-    end)
-
-    Plus.MouseButton1Click:Connect(function()
-        SetScale(Scale.Scale + 0.1, true)
-    end)
-
-    local dragging = false
-    local resizing = false
-    local dragTouch
-    local resizeTouch
-    local dragStart
-    local dragPosition
-    local resizeStart
-    local resizeScale
-
-    Header.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = true
-            resizing = false
-            dragTouch = input.UserInputType == Enum.UserInputType.Touch and input or nil
-            dragStart = input.Position
-            dragPosition = Vector2.new(Main.Position.X.Offset, Main.Position.Y.Offset)
-        end
-    end)
-
-    ResizeGrip.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            resizing = true
-            dragging = false
-            resizeTouch = input.UserInputType == Enum.UserInputType.Touch and input or nil
-            resizeStart = input.Position
-            resizeScale = Scale.Scale
-        end
-    end)
-
-    local InputChangedConnection = UserInputService.InputChanged:Connect(function(input)
-        if dragging and (input == dragTouch or (not dragTouch and input.UserInputType == Enum.UserInputType.MouseMovement)) then
-            local delta = input.Position - dragStart
-            local x, y = ConstrainPosition(dragPosition.X + delta.X, dragPosition.Y + delta.Y, Scale.Scale)
-            Main.Position = UDim2.fromOffset(x, y)
-        elseif resizing and (input == resizeTouch or (not resizeTouch and input.UserInputType == Enum.UserInputType.MouseMovement)) then
-            local delta = input.Position - resizeStart
-            local dx = delta.X / BaseWidth
-            local dy = delta.Y / BaseHeight
-            local change = math.abs(dx) >= math.abs(dy) and dx or dy
-            SetScale(resizeScale + change, false)
-        end
-    end)
-
-    local InputEndedConnection = UserInputService.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            dragging = false
-            resizing = false
-        elseif input.UserInputType == Enum.UserInputType.Touch then
-            if input == dragTouch then
-                dragging = false
-                dragTouch = nil
-            end
-            if input == resizeTouch then
-                resizing = false
-                resizeTouch = nil
-            end
-        end
-    end)
-
-    local Entries = {}
-    local Order = 0
-
-    local function Disconnect(connection)
-        if connection then
-            connection:Disconnect()
-        end
-    end
-
-    local function UpdateCount()
-        local count = 0
-        for _ in pairs(Entries) do
-            count += 1
-        end
-        CountText.Text = string.format("%d ONLINE", count)
-        Empty.Visible = count == 0
-    end
-
-    local function BindCharacter(player, character)
-        local entry = Entries[player]
-        if not entry then
-            return
-        end
-
-        Disconnect(entry.healthConnection)
-        Disconnect(entry.maxHealthConnection)
-        entry.healthConnection = nil
-        entry.maxHealthConnection = nil
-        entry.hp.Text = "LOADING"
-        entry.fill.Size = UDim2.fromScale(0, 1)
-
-        local humanoid = character:WaitForChild("Humanoid", 10)
-        if not humanoid or Entries[player] ~= entry or player.Character ~= character then
-            return
-        end
-
-        local function UpdateHealth()
-            if Entries[player] ~= entry or player.Character ~= character then
-                return
-            end
-            local maxHP = math.max(0, humanoid.MaxHealth)
-            local hp = math.clamp(humanoid.Health, 0, maxHP)
-            local ratio = maxHP > 0 and hp / maxHP or 0
-            entry.hp.Text = string.format("%d / %d", math.floor(hp + 0.5), math.floor(maxHP + 0.5))
-            entry.hp.TextColor3 = hp > 0 and PaleGold or Color3.fromRGB(255, 126, 121)
-            local color = Color3.fromRGB(223, 75, 80):Lerp(Color3.fromRGB(245, 201, 103), ratio)
-            Animate(entry.fill, 0.25, {
-                Size = UDim2.new(ratio, 0, 1, 0),
-                BackgroundColor3 = color
-            })
-        end
-
-        entry.healthConnection = humanoid.HealthChanged:Connect(UpdateHealth)
-        entry.maxHealthConnection = humanoid:GetPropertyChangedSignal("MaxHealth"):Connect(UpdateHealth)
-        UpdateHealth()
-    end
-
-    local function AddPlayer(player)
-        if player == LocalPlayer or Entries[player] then
-            return
-        end
-
-        Order += 1
-        local Row = Create("Frame", {
-            Name = "Player_" .. player.UserId,
-            Size = UDim2.new(1, 0, 0, 77),
-            BackgroundColor3 = Color3.fromRGB(38, 34, 37),
-            BackgroundTransparency = 1,
-            BorderSizePixel = 0,
-            LayoutOrder = Order,
-            ZIndex = 5
+        local row = Create("Frame", {
+            Size = UDim2.new(1, 0, 0, 56), BackgroundColor3 = Color3.fromRGB(28, 24, 32),
+            BackgroundTransparency = 1, BorderSizePixel = 0, ZIndex = 5
         }, PlayerScroll)
-        Round(Row, 11)
-        Create("UIStroke", {Color = Gold, Thickness = 1, Transparency = 0.72}, Row)
+        Round(row, 10)
         Create("UIGradient", {
             Color = ColorSequence.new({
-                ColorSequenceKeypoint.new(0, Color3.fromRGB(47, 36, 33)),
-                ColorSequenceKeypoint.new(1, Color3.fromRGB(28, 29, 36))
-            }),
-            Rotation = 14
-        }, Row)
+                ColorSequenceKeypoint.new(0, Color3.fromRGB(50, 38, 32)),
+                ColorSequenceKeypoint.new(1, Color3.fromRGB(26, 26, 36))
+            }), Rotation = 15
+        }, row)
+        Create("UIStroke", {Color = Gold, Transparency = 0.72, Thickness = 1}, row)
 
-        local Avatar = Create("ImageLabel", {
-            Position = UDim2.fromOffset(11, 13),
-            Size = UDim2.fromOffset(47, 47),
-            BackgroundColor3 = Color3.fromRGB(65, 51, 41),
-            BorderSizePixel = 0,
-            Image = "",
-            ScaleType = Enum.ScaleType.Crop,
+        local avatar = Create("ImageLabel", {
+            Position = UDim2.fromOffset(9, 9), Size = UDim2.fromOffset(38, 38),
+            BackgroundColor3 = Color3.fromRGB(44, 32, 24), BorderSizePixel = 0,
+            Image = string.format("https://www.roblox.com/headshot-thumbnail/image?userId=%d&width=48&height=48&format=png", plr.UserId),
             ZIndex = 6
-        }, Row)
-        Round(Avatar, 10)
-        Create("UIStroke", {Color = PaleGold, Thickness = 1.5, Transparency = 0.25}, Avatar)
+        }, row)
+        Round(avatar, 10)
+        Create("UIStroke", {Color = Gold, Transparency = 0.42, Thickness = 1}, avatar)
 
-        local Info = Create("Frame", {
-            Position = UDim2.fromOffset(70, 7),
-            Size = UDim2.new(1, -80, 1, -14),
-            BackgroundTransparency = 1,
-            ZIndex = 6
-        }, Row)
+        local nameLabel = Create("TextLabel", {
+            Position = UDim2.fromOffset(55, 7), Size = UDim2.new(1, -120, 0, 18),
+            BackgroundTransparency = 1, Text = plr.DisplayName,
+            TextColor3 = PaleGold, Font = Enum.Font.GothamBold, TextSize = 13,
+            TextXAlignment = Enum.TextXAlignment.Left, TextTruncate = Enum.TextTruncate.AtEnd, ZIndex = 6
+        }, row)
 
-        Create("TextLabel", {
-            Position = UDim2.fromOffset(0, 2),
-            Size = UDim2.new(1, -88, 0, 19),
-            BackgroundTransparency = 1,
-            Text = player.DisplayName,
-            Font = Enum.Font.GothamBold,
-            TextSize = 12,
-            TextColor3 = Color3.fromRGB(255, 247, 226),
-            TextXAlignment = Enum.TextXAlignment.Left,
-            TextTruncate = Enum.TextTruncate.AtEnd,
-            ZIndex = 7
-        }, Info)
+        local hpLabel = Create("TextLabel", {
+            AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -10, 0, 7),
+            Size = UDim2.fromOffset(58, 18), BackgroundTransparency = 1,
+            Text = string.format("%d / %d", math.floor(hp), math.floor(maxHp)),
+            TextColor3 = healthColor(ratio), Font = Enum.Font.GothamMedium, TextSize = 11,
+            TextXAlignment = Enum.TextXAlignment.Right, ZIndex = 6
+        }, row)
 
-        Create("TextLabel", {
-            Position = UDim2.fromOffset(0, 23),
-            Size = UDim2.new(1, -5, 0, 14),
-            BackgroundTransparency = 1,
-            Text = "@" .. player.Name,
-            Font = Enum.Font.Gotham,
-            TextSize = 10,
-            TextColor3 = MutedGold,
-            TextXAlignment = Enum.TextXAlignment.Left,
-            TextTruncate = Enum.TextTruncate.AtEnd,
-            ZIndex = 7
-        }, Info)
+        local barBg = Create("Frame", {
+            Position = UDim2.fromOffset(55, 32), Size = UDim2.new(1, -68, 0, 9),
+            BackgroundColor3 = Color3.fromRGB(38, 32, 42), BorderSizePixel = 0, ZIndex = 6
+        }, row)
+        Round(barBg, 5)
 
-        local Hp = Create("TextLabel", {
-            AnchorPoint = Vector2.new(1, 0),
-            Position = UDim2.new(1, 0, 0, 2),
-            Size = UDim2.fromOffset(84, 19),
-            BackgroundTransparency = 1,
-            Text = "LOADING",
-            Font = Enum.Font.GothamBold,
-            TextSize = 11,
-            TextColor3 = PaleGold,
-            TextXAlignment = Enum.TextXAlignment.Right,
-            ZIndex = 7
-        }, Info)
+        local barFill = Create("Frame", {
+            Size = UDim2.fromScale(ratio, 1), BackgroundColor3 = healthColor(ratio),
+            BorderSizePixel = 0, ZIndex = 7
+        }, barBg)
+        Round(barFill, 5)
+        Create("UIGradient", {
+            Color = ColorSequence.new({
+                ColorSequenceKeypoint.new(0, Color3.fromRGB(80, 220, 120)),
+                ColorSequenceKeypoint.new(0.5, Color3.fromRGB(180, 255, 200)),
+                ColorSequenceKeypoint.new(1, Color3.fromRGB(80, 220, 120))
+            }), Rotation = 90
+        }, barFill)
 
-        local Bar = Create("Frame", {
-            Position = UDim2.new(0, 0, 1, -12),
-            Size = UDim2.new(1, 0, 0, 7),
-            BackgroundColor3 = Color3.fromRGB(67, 58, 59),
-            BorderSizePixel = 0,
-            ClipsDescendants = true,
-            ZIndex = 7
-        }, Info)
-        Round(Bar, 5)
+        playerRows[plr] = {
+            row = row, barFill = barFill, hpLabel = hpLabel,
+            nameLabel = nameLabel, barBg = barBg
+        }
+        Empty.Visible = false
+    end
 
-        local Fill = Create("Frame", {
-            Size = UDim2.fromScale(0, 1),
-            BackgroundColor3 = Gold,
-            BorderSizePixel = 0,
-            ZIndex = 8
-        }, Bar)
-        Round(Fill, 5)
+    local function removeRow(plr)
+        local data = playerRows[plr]
+        if data then
+            data.row:Destroy()
+            playerRows[plr] = nil
+        end
+        local count = 0
+        for _ in pairs(playerRows) do count = count + 1 end
+        Empty.Visible = count == 0
+        CountText.Text = count .. " ONLINE"
+    end
 
-        local entry = {row = Row, fill = Fill, hp = Hp}
-        Entries[player] = entry
-        UpdateCount()
+    local function updateRow(plr)
+        local data = playerRows[plr]
+        if not data then return end
+        local char = plr.Character
+        local hum = getHumanoid(char)
+        local hp = hum and hum.Health or 0
+        local maxHp = hum and hum.MaxHealth or 100
+        maxHp = maxHp == 0 and 100 or maxHp
+        local ratio = math.clamp(hp / maxHp, 0, 1)
+        local color = healthColor(ratio)
+        Animate(data.barFill, 0.25, {Size = UDim2.fromScale(ratio, 1), BackgroundColor3 = color})
+        data.hpLabel.Text = string.format("%d / %d", math.floor(hp), math.floor(maxHp))
+        data.hpLabel.TextColor3 = color
+    end
 
-        task.spawn(function()
-            local ok, thumbnail = pcall(function()
-                return Players:GetUserThumbnailAsync(
-                    player.UserId,
-                    Enum.ThumbnailType.HeadShot,
-                    Enum.ThumbnailSize.Size48x48
-                )
-            end)
-            if ok and Entries[player] == entry then
-                Avatar.Image = thumbnail
+    local healthConnections = {}
+    local function healthConnect(signal, callback)
+        local connection = signal:Connect(callback)
+        table.insert(healthConnections, connection)
+        return connection
+    end
+    ScreenGui.Destroying:Connect(function()
+        for _, connection in ipairs(healthConnections) do connection:Disconnect() end
+        table.clear(healthConnections)
+    end)
+
+    local function hookPlayer(plr)
+        if plr == LocalPlayer then return end
+        makeRow(plr)
+        local count = 0
+        for _ in pairs(playerRows) do count = count + 1 end
+        CountText.Text = count .. " ONLINE"
+        healthConnect(plr.CharacterAdded, function(char)
+            task.wait(0.2)
+            if not ScreenGui.Parent then return end
+            makeRow(plr)
+            local hum = char:WaitForChild("Humanoid", 5)
+            if hum and ScreenGui.Parent then
+                updateRow(plr)
+                healthConnect(hum:GetPropertyChangedSignal("Health"), function()
+                    updateRow(plr)
+                end)
+                healthConnect(hum:GetPropertyChangedSignal("MaxHealth"), function()
+                    updateRow(plr)
+                end)
             end
         end)
-
-        entry.characterConnection = player.CharacterAdded:Connect(function(character)
-            task.spawn(BindCharacter, player, character)
-        end)
-
-        if player.Character then
-            task.spawn(BindCharacter, player, player.Character)
+        local char = plr.Character
+        if char then
+            local hum = getHumanoid(char)
+            if hum and ScreenGui.Parent then
+                updateRow(plr)
+                healthConnect(hum:GetPropertyChangedSignal("Health"), function()
+                    updateRow(plr)
+                end)
+                healthConnect(hum:GetPropertyChangedSignal("MaxHealth"), function()
+                    updateRow(plr)
+                end)
+            end
         end
     end
 
-    local function RemovePlayer(player)
-        local entry = Entries[player]
-        if not entry then
-            return
+    for _, plr in ipairs(Players:GetPlayers()) do
+        hookPlayer(plr)
+    end
+    healthConnect(Players.PlayerAdded, hookPlayer)
+    healthConnect(Players.PlayerRemoving, removeRow)
+
+    local dragging, dragStart, startPos = false, nil, nil
+    Header.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1
+            or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startPos = Main.Position
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
         end
-        Entries[player] = nil
-        Disconnect(entry.healthConnection)
-        Disconnect(entry.maxHealthConnection)
-        Disconnect(entry.characterConnection)
-        entry.row:Destroy()
-        UpdateCount()
-    end
-
-    for _, player in ipairs(Players:GetPlayers()) do
-        AddPlayer(player)
-    end
-
-    local PlayerAddedConnection = Players.PlayerAdded:Connect(AddPlayer)
-    local PlayerRemovingConnection = Players.PlayerRemoving:Connect(RemovePlayer)
-
-    ScreenGui.Destroying:Connect(function()
-        InputChangedConnection:Disconnect()
-        InputEndedConnection:Disconnect()
-        PlayerAddedConnection:Disconnect()
-        PlayerRemovingConnection:Disconnect()
-        for _, entry in pairs(Entries) do
-            Disconnect(entry.healthConnection)
-            Disconnect(entry.maxHealthConnection)
-            Disconnect(entry.characterConnection)
+    end)
+    healthConnect(UserInputService.InputChanged, function(input)
+        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement
+            or input.UserInputType == Enum.UserInputType.Touch) then
+            local delta = input.Position - dragStart
+            Main.Position = UDim2.new(
+                startPos.X.Scale, startPos.X.Offset + delta.X,
+                startPos.Y.Scale, startPos.Y.Offset + delta.Y
+            )
         end
     end)
 
-    TweenService:Create(
-        BorderGradient,
-        TweenInfo.new(4, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true),
-        {Offset = Vector2.new(0.7, 0)}
-    ):Play()
+    CloseBtn.Activated:Connect(function()
+        healthGui = nil
+        setHealthButtonState(false)
+        Animate(Main, 0.18, {GroupTransparency = 1})
+        task.delay(0.2, function() ScreenGui:Destroy() end)
+    end)
+    MinBtn.Activated:Connect(function()
+        local collapsed = Main.Size.Y.Offset < 90
+        PlayerScroll.Visible = collapsed
+        Animate(Main, 0.22, {
+            Size = collapsed
+                and UDim2.fromOffset(BaseWidth, BaseHeight)
+                or UDim2.fromOffset(BaseWidth, 82)
+        })
+    end)
 
-    TweenService:Create(
-        TitleGradient,
-        TweenInfo.new(3.2, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true),
-        {Offset = Vector2.new(0.65, 0)}
-    ):Play()
-    return ScreenGui
-end
+    local CanvasGroup = Main
+    if CanvasGroup:IsA("CanvasGroup") then
+        CanvasGroup.GroupTransparency = 1
+        Animate(CanvasGroup, 0.26, {GroupTransparency = 0})
+    end
 
-local function stopHealthBar()
-    local current = healthGui
-    healthGui = nil
-    if current and current.Parent then current:Destroy() end
-    setHealthButtonState(false)
+    healthGui = ScreenGui
 end
 
 connect(healthButton.Activated, function()
     clickSound()
-    if healthGui and healthGui.Parent then
-        stopHealthBar()
+    if healthGui then
+        healthGui:Destroy()
+        healthGui = nil
+        setHealthButtonState(false)
         notify("HEALTH BAR / Closed", true)
         return
     end
-    local ok, created = pcall(launchHealthBar)
-    if not ok or not created then
-        local unfinished = playerGui:FindFirstChild("PlayerHealthUI")
-        if unfinished then unfinished:Destroy() end
-        notify("HEALTH BAR / Unable to start", false)
-        return
-    end
-    healthGui = created
     setHealthButtonState(true)
-    created.Destroying:Connect(function()
-        if healthGui == created then
-            healthGui = nil
-            setHealthButtonState(false)
-        end
-    end)
-    notify("HEALTH BAR / Started", true)
+    launchHealthBar()
+    notify("HEALTH BAR / Launched", true)
 end)
-
 featureUI.healthButton = healthButton
-featureStop.health = stopHealthBar
+featureStop.health = function()
+    if healthGui then
+        healthGui:Destroy()
+        healthGui = nil
+    end
+    setHealthButtonState(false)
+end
 end
 
 do
-local scanButton, scanDescription, scanHeading, scanBorder = actionBox(
-    toolsScroll, "05 / RADAR", "Scan", "Scan all the players."
+local radarButton, radarDescription, radarHeading, radarBorder = actionBox(
+    toolsScroll, "05 / RADAR", "Radar", "Show player and item positions on a mini-map"
 )
 local radarGui = nil
-local scanGradient = scanButton:FindFirstChildOfClass("UIGradient")
-local originalScanGradient = scanGradient.Color
-local scanBorderGradient = scanBorder:FindFirstChildOfClass("UIGradient")
+local radarGradient = radarButton:FindFirstChildOfClass("UIGradient")
+local radarOriginalGradient = radarGradient.Color
+local radarBorderGradient = radarBorder:FindFirstChildOfClass("UIGradient")
+local radarEnabled = false
 
-local function setScanButtonState(enabled)
-    scanGradient.Color = enabled and ColorSequence.new({
+local function setRadarButtonState(enabled)
+    radarGradient.Color = enabled and ColorSequence.new({
         ColorSequenceKeypoint.new(0, Color3.fromRGB(11, 69, 44)),
         ColorSequenceKeypoint.new(0.44, Color3.fromRGB(37, 151, 77)),
         ColorSequenceKeypoint.new(0.72, Color3.fromRGB(22, 116, 65)),
         ColorSequenceKeypoint.new(1, Color3.fromRGB(9, 65, 42)),
-    }) or originalScanGradient
-    scanButton.BackgroundTransparency = enabled and 0.01 or 0.11
-    scanBorderGradient.Enabled = not enabled
-    scanBorder.Color = enabled and Color3.fromRGB(116, 255, 150) or C.gold
-    tween(scanBorder, {Thickness = enabled and 2.9 or 2}, 0.2)
-    for _, child in ipairs(scanButton:GetChildren()) do
+    }) or radarOriginalGradient
+    radarButton.BackgroundTransparency = enabled and 0.01 or 0.11
+    radarBorderGradient.Enabled = not enabled
+    radarBorder.Color = enabled and Color3.fromRGB(116, 255, 150) or C.gold
+    tween(radarBorder, {Thickness = enabled and 2.9 or 2}, 0.2)
+    for _, child in ipairs(radarButton:GetChildren()) do
         if child:IsA("TextLabel") then
             local gold = child:FindFirstChildOfClass("UIGradient")
             if gold then gold.Enabled = not enabled end
@@ -2280,414 +2673,391 @@ local function setScanButtonState(enabled)
     end
 end
 
-local function launchScanner()
+local function launchRadar()
     local Players = game:GetService("Players")
     local RunService = game:GetService("RunService")
-    local TweenService = game:GetService("TweenService")
-    local UserInputService = game:GetService("UserInputService")
-
     local LocalPlayer = Players.LocalPlayer
     local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
-    local RANGE = 100
-    local RADAR_SIZE = 236
-    local RADAR_RADIUS = RADAR_SIZE / 2 - 8
 
-    local Old = PlayerGui:FindFirstChild("DeepGreenRadar")
-    if Old then
-        Old:Destroy()
+    local old = PlayerGui:FindFirstChild("HardcoreRadarUI")
+    if old then old:Destroy() end
+
+    local radarScreen = Instance.new("ScreenGui")
+    radarScreen.Name = "HardcoreRadarUI"
+    radarScreen.ResetOnSpawn = false
+    radarScreen.IgnoreGuiInset = true
+    radarScreen.DisplayOrder = 850
+    radarScreen.Parent = PlayerGui
+    radarGui = radarScreen
+
+    local RADAR_RADIUS = 180
+    local WORLD_RANGE = 120
+    local DOT_SIZE = 10
+
+    local container = Instance.new("Frame")
+    container.Name = "RadarContainer"
+    container.AnchorPoint = Vector2.new(0, 1)
+    container.Position = UDim2.new(0, 14, 1, -14)
+    container.Size = UDim2.fromOffset(RADAR_RADIUS * 2 + 8, RADAR_RADIUS * 2 + 42)
+    container.BackgroundColor3 = Color3.fromRGB(5, 22, 14)
+    container.BackgroundTransparency = 0.12
+    container.BorderSizePixel = 0
+    container.Active = true
+    container.Parent = radarScreen
+    local containerCorner = Instance.new("UICorner")
+    containerCorner.CornerRadius = UDim.new(0, 14)
+    containerCorner.Parent = container
+    local containerStroke = Instance.new("UIStroke")
+    containerStroke.Color = Color3.fromRGB(70, 255, 125)
+    containerStroke.Thickness = 1.4
+    containerStroke.Transparency = 0.35
+    containerStroke.Parent = container
+
+    local titleBar = Instance.new("TextLabel")
+    titleBar.Size = UDim2.new(1, 0, 0, 26)
+    titleBar.Position = UDim2.fromOffset(0, 6)
+    titleBar.BackgroundTransparency = 1
+    titleBar.Text = "▸  RADAR"
+    titleBar.TextColor3 = Color3.fromRGB(70, 255, 125)
+    titleBar.Font = Enum.Font.GothamBold
+    titleBar.TextSize = 11
+    titleBar.Parent = container
+
+    local closeRadarBtn = Instance.new("TextButton")
+    closeRadarBtn.AnchorPoint = Vector2.new(1, 0)
+    closeRadarBtn.Position = UDim2.new(1, -6, 0, 5)
+    closeRadarBtn.Size = UDim2.fromOffset(22, 22)
+    closeRadarBtn.Text = "×"
+    closeRadarBtn.TextColor3 = Color3.fromRGB(180, 255, 200)
+    closeRadarBtn.TextSize = 16
+    closeRadarBtn.Font = Enum.Font.GothamBold
+    closeRadarBtn.BackgroundTransparency = 1
+    closeRadarBtn.BorderSizePixel = 0
+    closeRadarBtn.Parent = container
+
+    local disk = Instance.new("Frame")
+    disk.Name = "RadarDisk"
+    disk.AnchorPoint = Vector2.new(0.5, 0)
+    disk.Position = UDim2.new(0.5, 0, 0, 32)
+    disk.Size = UDim2.fromOffset(RADAR_RADIUS * 2, RADAR_RADIUS * 2)
+    disk.BackgroundColor3 = Color3.fromRGB(4, 28, 15)
+    disk.BackgroundTransparency = 0.08
+    disk.BorderSizePixel = 0
+    disk.ClipsDescendants = true
+    disk.Parent = container
+    local diskCorner = Instance.new("UICorner")
+    diskCorner.CornerRadius = UDim.new(0.5, 0)
+    diskCorner.Parent = disk
+    local diskStroke = Instance.new("UIStroke")
+    diskStroke.Color = Color3.fromRGB(70, 255, 125)
+    diskStroke.Thickness = 1.2
+    diskStroke.Transparency = 0.5
+    diskStroke.Parent = disk
+
+    for _, ringRatio in ipairs({0.33, 0.66, 1}) do
+        local ring = Instance.new("Frame")
+        local sz = RADAR_RADIUS * 2 * ringRatio
+        ring.AnchorPoint = Vector2.new(0.5, 0.5)
+        ring.Position = UDim2.fromScale(0.5, 0.5)
+        ring.Size = UDim2.fromOffset(sz, sz)
+        ring.BackgroundTransparency = 1
+        ring.BorderSizePixel = 0
+        ring.Parent = disk
+        local ringStroke = Instance.new("UIStroke")
+        ringStroke.Color = Color3.fromRGB(70, 255, 125)
+        ringStroke.Thickness = 0.8
+        ringStroke.Transparency = 0.75
+        ringStroke.Parent = ring
+        local ringCorner = Instance.new("UICorner")
+        ringCorner.CornerRadius = UDim.new(0.5, 0)
+        ringCorner.Parent = ring
     end
 
-    local function Create(class, props, parent)
-        local obj = Instance.new(class)
-        for key, value in pairs(props) do
-            obj[key] = value
+    for _, axis in ipairs({"H", "V"}) do
+        local line = Instance.new("Frame")
+        line.AnchorPoint = Vector2.new(0.5, 0.5)
+        line.Position = UDim2.fromScale(0.5, 0.5)
+        line.Size = axis == "H"
+            and UDim2.new(1, 0, 0, 1)
+            or UDim2.new(0, 1, 1, 0)
+        line.BackgroundColor3 = Color3.fromRGB(70, 255, 125)
+        line.BackgroundTransparency = 0.84
+        line.BorderSizePixel = 0
+        line.ZIndex = 2
+        line.Parent = disk
+    end
+
+    local selfDot = Instance.new("Frame")
+    selfDot.Name = "SelfDot"
+    selfDot.AnchorPoint = Vector2.new(0.5, 0.5)
+    selfDot.Position = UDim2.fromScale(0.5, 0.5)
+    selfDot.Size = UDim2.fromOffset(DOT_SIZE + 2, DOT_SIZE + 2)
+    selfDot.BackgroundColor3 = Color3.fromRGB(180, 255, 200)
+    selfDot.BorderSizePixel = 0
+    selfDot.ZIndex = 10
+    selfDot.Parent = disk
+    local selfCorner = Instance.new("UICorner")
+    selfCorner.CornerRadius = UDim.new(0.5, 0)
+    selfCorner.Parent = selfDot
+
+    local playerDots = {}
+    local sweepAngle = 0
+
+    local sweepRays = {}
+    for i = 12, 0, -1 do
+        local ray = make("Frame", disk, {
+            Name = i == 0 and "Sweep" or "SweepTrail",
+            AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.75, 0.5),
+            Size = UDim2.fromOffset(RADAR_RADIUS - 3, 2),
+            BackgroundColor3 = Color3.new(1, 1, 1),
+            BackgroundTransparency = i == 0 and 0.08 or 0.79 + i * 0.015,
+            BorderSizePixel = 0, ZIndex = i == 0 and 6 or 5,
+        })
+        gradient(ray, {Color3.fromRGB(130, 255, 170), Color3.fromRGB(45, 255, 105)}, 0,
+            NumberSequence.new({NumberSequenceKeypoint.new(0, 0.08), NumberSequenceKeypoint.new(1, i == 0 and 0.35 or 0.85)}))
+        table.insert(sweepRays, {object = ray, offset = i * 3})
+    end
+
+    local itemDots = {}
+    local itemRefresh = 0.5
+    local itemColor = Color3.fromRGB(100, 195, 255)
+
+    local function addItem(obj, found)
+        if found[obj] then return end
+        if not (obj:IsA("Model") or obj:IsA("BasePart") or obj:IsA("Attachment") or obj:IsA("Folder")) then return end
+        found[obj] = true
+        if not itemDots[obj] then
+            local marker = make("ImageLabel", disk, {
+                Name = obj.Name .. "Marker",
+                AnchorPoint = Vector2.new(0.5, 0.5),
+                Size = UDim2.fromOffset(8, 8),
+                BackgroundTransparency = 1,
+                Image = "rbxassetid://95126386730533",
+                ImageColor3 = itemColor,
+                ScaleType = Enum.ScaleType.Fit,
+                Visible = false,
+                ZIndex = 9,
+            })
+            itemDots[obj] = marker
         end
-        obj.Parent = parent
-        return obj
     end
 
-    local Gui = Create("ScreenGui", {
-        Name = "DeepGreenRadar",
-        ResetOnSpawn = false,
-        IgnoreGuiInset = true,
-        DisplayOrder = 500,
-        ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-    }, PlayerGui)
-
-    local Main = Create("Frame", {
-        Name = "RadarPanel",
-        Size = UDim2.fromOffset(264, 307),
-        Position = UDim2.new(1, -284, 0, 140),
-        BackgroundColor3 = Color3.fromRGB(7, 23, 17),
-        BackgroundTransparency = 0.08,
-        BorderSizePixel = 0,
-        Active = true
-    }, Gui)
-
-    Create("UICorner", {CornerRadius = UDim.new(0, 17)}, Main)
-    Create("UIStroke", {
-        Color = Color3.fromRGB(44, 143, 94),
-        Transparency = 0.25,
-        Thickness = 1.6
-    }, Main)
-    Create("UIGradient", {
-        Rotation = 85,
-        Color = ColorSequence.new({
-            ColorSequenceKeypoint.new(0, Color3.fromRGB(16, 48, 33)),
-            ColorSequenceKeypoint.new(1, Color3.fromRGB(5, 17, 13))
-        })
-    }, Main)
-
-    local Header = Create("Frame", {
-        Name = "DragHandle",
-        Size = UDim2.new(1, 0, 0, 39),
-        BackgroundTransparency = 1,
-        Active = true
-    }, Main)
-
-    Create("TextLabel", {
-        Size = UDim2.new(1, -92, 1, 0),
-        Position = UDim2.fromOffset(14, 0),
-        BackgroundTransparency = 1,
-        Text = "Scanning...",
-        Font = Enum.Font.GothamBold,
-        TextSize = 13,
-        TextColor3 = Color3.fromRGB(164, 248, 185),
-        TextXAlignment = Enum.TextXAlignment.Left
-    }, Header)
-
-    local Status = Create("TextLabel", {
-        AnchorPoint = Vector2.new(1, 0.5),
-        Position = UDim2.new(1, -12, 0.5, 0),
-        Size = UDim2.fromOffset(72, 22),
-        BackgroundColor3 = Color3.fromRGB(16, 67, 40),
-        TextColor3 = Color3.fromRGB(127, 255, 157),
-        Text = "SCANNING",
-        Font = Enum.Font.GothamBold,
-        TextSize = 9
-    }, Header)
-    Create("UICorner", {CornerRadius = UDim.new(1, 0)}, Status)
-
-    local Radar = Create("Frame", {
-        Name = "RadarCircle",
-        Size = UDim2.fromOffset(RADAR_SIZE, RADAR_SIZE),
-        Position = UDim2.fromOffset(14, 42),
-        BackgroundColor3 = Color3.fromRGB(5, 34, 22),
-        BorderSizePixel = 0,
-        ClipsDescendants = true,
-        Active = true
-    }, Main)
-    Create("UICorner", {CornerRadius = UDim.new(1, 0)}, Radar)
-    Create("UIStroke", {
-        Color = Color3.fromRGB(73, 198, 122),
-        Thickness = 1.5,
-        Transparency = 0.15
-    }, Radar)
-    Create("UIGradient", {
-        Rotation = 90,
-        Color = ColorSequence.new({
-            ColorSequenceKeypoint.new(0, Color3.fromRGB(12, 58, 36)),
-            ColorSequenceKeypoint.new(1, Color3.fromRGB(3, 22, 17))
-        })
-    }, Radar)
-
-    for _, diameter in ipairs({78, 155, 226}) do
-        local ring = Create("Frame", {
-            AnchorPoint = Vector2.new(0.5, 0.5),
-            Position = UDim2.fromScale(0.5, 0.5),
-            Size = UDim2.fromOffset(diameter, diameter),
-            BackgroundTransparency = 1,
-            ZIndex = 2
-        }, Radar)
-        Create("UICorner", {CornerRadius = UDim.new(1, 0)}, ring)
-        Create("UIStroke", {
-            Color = Color3.fromRGB(56, 133, 86),
-            Transparency = 0.52,
-            Thickness = 1
-        }, ring)
+    local function refreshItems()
+        local found = {}
+        local rooms = workspace:FindFirstChild("CurrentRooms")
+        local room50 = rooms and rooms:FindFirstChild("50")
+        local assets = room50 and room50:FindFirstChild("Assets")
+        local shelves = assets and assets:FindFirstChild("Bookshelves1")
+        if shelves then
+            for _, shelf in ipairs(shelves:GetDescendants()) do
+                if shelf.Name == "Modular_Bookshelf" and shelf:IsA("Model") then
+                    for _, obj in ipairs(shelf:GetDescendants()) do
+                        if obj.Name == "LiveHintBook" then addItem(obj, found) end
+                    end
+                end
+            end
+        end
+        local room100 = rooms and rooms:FindFirstChild("100")
+        if room100 then
+            for _, obj in ipairs(room100:GetDescendants()) do
+                if obj.Name == "LiveBreakerPolePickup" then addItem(obj, found) end
+            end
+        end
+        for obj, marker in pairs(itemDots) do
+            if not found[obj] then
+                marker:Destroy()
+                itemDots[obj] = nil
+            end
+        end
     end
 
-    Create("Frame", {
-        AnchorPoint = Vector2.new(0.5, 0.5),
-        Position = UDim2.fromScale(0.5, 0.5),
-        Size = UDim2.new(1, 0, 0, 1),
-        BackgroundColor3 = Color3.fromRGB(50, 119, 81),
-        BackgroundTransparency = 0.6,
-        BorderSizePixel = 0,
-        ZIndex = 2
-    }, Radar)
-    Create("Frame", {
-        AnchorPoint = Vector2.new(0.5, 0.5),
-        Position = UDim2.fromScale(0.5, 0.5),
-        Size = UDim2.new(0, 1, 1, 0),
-        BackgroundColor3 = Color3.fromRGB(50, 119, 81),
-        BackgroundTransparency = 0.6,
-        BorderSizePixel = 0,
-        ZIndex = 2
-    }, Radar)
+    local function itemPosition(obj)
+        if obj:IsA("BasePart") then return obj.Position end
+        if obj:IsA("Attachment") then return obj.WorldPosition end
+        if obj:IsA("Model") then
+            if obj:FindFirstChildWhichIsA("BasePart", true) then return obj:GetPivot().Position end
+        else
+            local part = obj:FindFirstChildWhichIsA("BasePart", true)
+            if part then return part.Position end
+        end
+        return nil
+    end
 
-    local Sweep = Create("Frame", {
-        Name = "ScanSweep",
-        AnchorPoint = Vector2.new(0.5, 0.5),
-        Position = UDim2.fromScale(0.5, 0.5),
-        Size = UDim2.fromScale(1, 1),
-        BackgroundTransparency = 1,
-        ZIndex = 3
-    }, Radar)
-
-    local SweepLine = Create("Frame", {
-        AnchorPoint = Vector2.new(0.5, 1),
-        Position = UDim2.fromScale(0.5, 0.5),
-        Size = UDim2.fromOffset(2, RADAR_RADIUS),
-        BackgroundColor3 = Color3.fromRGB(96, 255, 157),
-        BackgroundTransparency = 0.35,
-        BorderSizePixel = 0,
-        ZIndex = 3
-    }, Sweep)
-    Create("UIGradient", {
-        Rotation = 90,
-        Transparency = NumberSequence.new({
-            NumberSequenceKeypoint.new(0, 0.88),
-            NumberSequenceKeypoint.new(1, 0.1)
-        })
-    }, SweepLine)
-
-    local CenterDot = Create("Frame", {
-        Name = "SelfDot",
-        AnchorPoint = Vector2.new(0.5, 0.5),
-        Position = UDim2.fromScale(0.5, 0.5),
-        Size = UDim2.fromOffset(7, 7),
-        BackgroundColor3 = Color3.fromRGB(111, 255, 155),
-        BorderSizePixel = 0,
-        ZIndex = 6
-    }, Radar)
-    Create("UICorner", {CornerRadius = UDim.new(1, 0)}, CenterDot)
-
-    local Footer = Create("TextLabel", {
-        Position = UDim2.fromOffset(14, 282),
-        Size = UDim2.fromOffset(236, 18),
-        BackgroundTransparency = 1,
-        Text = "Network status: correct",
-        Font = Enum.Font.GothamMedium,
-        TextSize = 10,
-        TextColor3 = Color3.fromRGB(111, 178, 131),
-        TextXAlignment = Enum.TextXAlignment.Center
-    }, Main)
-
-    local Dragging = false
-    local DragInput
-    local DragStart
-    local StartPosition
-
-    local function BeginDrag(input)
-        if input.UserInputType ~= Enum.UserInputType.MouseButton1 and input.UserInputType ~= Enum.UserInputType.Touch then
+    local radarStep
+    radarStep = RunService.Heartbeat:Connect(function(dt)
+        if not radarScreen.Parent then
+            radarStep:Disconnect()
             return
         end
-        Dragging = true
-        DragInput = input
-        DragStart = input.Position
-        StartPosition = Main.Position
-    end
-
-    Header.InputBegan:Connect(BeginDrag)
-    Radar.InputBegan:Connect(BeginDrag)
-
-    local DragChangedConnection = UserInputService.InputChanged:Connect(function(input)
-        if not Dragging then
-            return
+        sweepAngle = (sweepAngle + dt * 90) % 360
+        for _, data in ipairs(sweepRays) do
+            local angle = sweepAngle - data.offset
+            local radians = math.rad(angle)
+            local halfLength = (RADAR_RADIUS - 3) * 0.5
+            data.object.Position = UDim2.new(0.5, math.cos(radians) * halfLength, 0.5, math.sin(radians) * halfLength)
+            data.object.Rotation = angle
         end
-        if input.UserInputType == Enum.UserInputType.MouseMovement or input == DragInput then
-            local delta = input.Position - DragStart
-            Main.Position = UDim2.new(
-                StartPosition.X.Scale,
-                StartPosition.X.Offset + delta.X,
-                StartPosition.Y.Scale,
-                StartPosition.Y.Offset + delta.Y
+
+        local selfChar = LocalPlayer.Character
+        local selfRoot = selfChar and selfChar:FindFirstChild("HumanoidRootPart")
+        local camera = workspace.CurrentCamera
+        local viewForward
+        if camera then
+            local look = camera.CFrame.LookVector
+            viewForward = Vector3.new(look.X, 0, look.Z)
+        end
+        if not viewForward or viewForward.Magnitude < 0.001 then
+            local look = selfRoot and selfRoot.CFrame.LookVector or Vector3.new(0, 0, -1)
+            viewForward = Vector3.new(look.X, 0, look.Z)
+        end
+        if viewForward.Magnitude < 0.001 then
+            viewForward = Vector3.new(0, 0, -1)
+        end
+        viewForward = viewForward.Unit
+        local viewRight = Vector3.new(-viewForward.Z, 0, viewForward.X)
+
+        itemRefresh = itemRefresh + dt
+        if itemRefresh >= 0.5 then
+            itemRefresh = 0
+            refreshItems()
+        end
+        for obj, marker in pairs(itemDots) do
+            local pos = obj:IsDescendantOf(workspace) and itemPosition(obj)
+            if selfRoot and pos then
+                local delta = pos - selfRoot.Position
+                local offset = Vector2.new(delta:Dot(viewRight), -delta:Dot(viewForward)) / WORLD_RANGE
+                if offset.Magnitude > 0.94 then offset = offset.Unit * 0.94 end
+                marker.Position = UDim2.fromScale(0.5 + offset.X * 0.5, 0.5 + offset.Y * 0.5)
+                marker.Visible = true
+            else
+                marker.Visible = false
+            end
+        end
+
+        local activePlayers = {}
+        for _, plr in ipairs(Players:GetPlayers()) do
+            if plr ~= LocalPlayer then
+                activePlayers[plr] = true
+                local char = plr.Character
+                local root = char and char:FindFirstChild("HumanoidRootPart")
+                if root and selfRoot then
+                    local delta = root.Position - selfRoot.Position
+                    local offset = Vector2.new(delta:Dot(viewRight), -delta:Dot(viewForward)) / WORLD_RANGE
+                    if offset.Magnitude > 0.94 then offset = offset.Unit * 0.94 end
+                    local px = 0.5 + offset.X * 0.5
+                    local pz = 0.5 + offset.Y * 0.5
+                    if not playerDots[plr] then
+                        local dot = Instance.new("Frame")
+                        dot.AnchorPoint = Vector2.new(0.5, 0.5)
+                        dot.Size = UDim2.fromOffset(DOT_SIZE, DOT_SIZE)
+                        dot.BackgroundColor3 = Color3.fromRGB(75, 240, 115)
+                        dot.BorderSizePixel = 0
+                        dot.ZIndex = 8
+                        dot.Parent = disk
+                        local dc = Instance.new("UICorner")
+                        dc.CornerRadius = UDim.new(0.5, 0)
+                        dc.Parent = dot
+                        local nameTag = Instance.new("TextLabel")
+                        nameTag.AnchorPoint = Vector2.new(0.5, 1)
+                        nameTag.Position = UDim2.new(0.5, 0, 0, -1)
+                        nameTag.Size = UDim2.fromOffset(60, 12)
+                        nameTag.BackgroundTransparency = 1
+                        nameTag.Text = plr.Name
+                        nameTag.TextColor3 = Color3.fromRGB(190, 255, 210)
+                        nameTag.TextSize = 8
+                        nameTag.Font = Enum.Font.GothamMedium
+                        nameTag.TextTruncate = Enum.TextTruncate.AtEnd
+                        nameTag.ZIndex = 9
+                        nameTag.Parent = dot
+                        playerDots[plr] = dot
+                    end
+                    playerDots[plr].Position = UDim2.fromScale(px, pz)
+                    playerDots[plr].Visible = true
+                elseif playerDots[plr] then
+                    playerDots[plr].Visible = false
+                end
+            end
+        end
+        for plr, dot in pairs(playerDots) do
+            if not activePlayers[plr] then
+                dot:Destroy()
+                playerDots[plr] = nil
+            end
+        end
+    end)
+
+    local dragging, dragStart, startPos = false, nil, nil
+    container.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1
+            or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startPos = container.Position
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
+        end
+    end)
+    local radarDragConnection = UIS.InputChanged:Connect(function(input)
+        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement
+            or input.UserInputType == Enum.UserInputType.Touch) then
+            local delta = input.Position - dragStart
+            container.Position = UDim2.new(
+                startPos.X.Scale, startPos.X.Offset + delta.X,
+                startPos.Y.Scale, startPos.Y.Offset + delta.Y
             )
         end
     end)
 
-    local DragEndedConnection = UserInputService.InputEnded:Connect(function(input)
-        if input == DragInput or (input.UserInputType == Enum.UserInputType.MouseButton1 and DragInput and DragInput.UserInputType == Enum.UserInputType.MouseButton1) then
-            Dragging = false
-            DragInput = nil
-        end
+    radarScreen.Destroying:Connect(function()
+        radarDragConnection:Disconnect()
+        if radarStep.Connected then radarStep:Disconnect() end
     end)
 
-    local JeffModels = {}
-    local Dots = {}
-
-    local function TrackJeff(obj)
-        if obj:IsA("Model") and obj.Name == "JeffTheKiller" then
-            JeffModels[obj] = true
-        end
-    end
-
-    for _, obj in ipairs(workspace:GetDescendants()) do
-        TrackJeff(obj)
-    end
-
-    local AddedConnection = workspace.DescendantAdded:Connect(TrackJeff)
-    local RemovedConnection = workspace.DescendantRemoving:Connect(function(obj)
-        JeffModels[obj] = nil
-    end)
-
-    local function GetDot(target)
-        if Dots[target] then
-            return Dots[target]
-        end
-        local dot = Create("Frame", {
-            Name = "RadarDot",
-            AnchorPoint = Vector2.new(0.5, 0.5),
-            Size = UDim2.fromOffset(7, 7),
-            BackgroundColor3 = Color3.fromRGB(111, 255, 155),
-            BorderSizePixel = 0,
-            ZIndex = 5
-        }, Radar)
-        Create("UICorner", {CornerRadius = UDim.new(1, 0)}, dot)
-        Dots[target] = dot
-        return dot
-    end
-
-    local function UpdateRadar()
-        local char = LocalPlayer.Character
-        local root = char and char:FindFirstChild("HumanoidRootPart")
-        local selfHumanoid = char and char:FindFirstChildOfClass("Humanoid")
-        local visible = {}
-        local count = 0
-
-        if root and selfHumanoid and selfHumanoid.Health > 0 then
-            local origin = root.Position
-            local cf = root.CFrame
-
-            local function Plot(target, position)
-                local offset = position - origin
-                local horizontal = Vector3.new(offset.X, 0, offset.Z)
-                local distance = horizontal.Magnitude
-                if distance > RANGE then
-                    return
-                end
-
-                local right = Vector3.new(cf.RightVector.X, 0, cf.RightVector.Z)
-                local forward = Vector3.new(cf.LookVector.X, 0, cf.LookVector.Z)
-                local x = horizontal:Dot(right) / RANGE * RADAR_RADIUS
-                local y = -horizontal:Dot(forward) / RANGE * RADAR_RADIUS
-
-                local dot = GetDot(target)
-                dot.Position = UDim2.new(0.5, x, 0.5, y)
-                visible[target] = true
-                count += 1
-            end
-
-            for _, player in ipairs(Players:GetPlayers()) do
-                if player ~= LocalPlayer then
-                    local character = player.Character
-                    local humanoid = character and character:FindFirstChildOfClass("Humanoid")
-                    local targetRoot = character and character:FindFirstChild("HumanoidRootPart")
-                    if humanoid and humanoid.Health > 0 and targetRoot then
-                        Plot(player, targetRoot.Position)
-                    end
-                end
-            end
-
-            for model in pairs(JeffModels) do
-                if model:IsDescendantOf(workspace) then
-                    local part = model.PrimaryPart or model:FindFirstChildWhichIsA("BasePart", true)
-                    if part then
-                        Plot(model, model:GetPivot().Position)
-                    end
-                else
-                    JeffModels[model] = nil
-                end
-            end
-        end
-
-        for target, dot in pairs(Dots) do
-            if not visible[target] then
-                dot:Destroy()
-                Dots[target] = nil
-            end
-        end
-
-        Status.Text = tostring(count) .. " TARGETS"
-    end
-
-    local SweepTween = TweenService:Create(Sweep, TweenInfo.new(5, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut, -1), {Rotation = 360})
-    SweepTween:Play()
-
-    local elapsed = 0
-    local RadarConnection = RunService.Heartbeat:Connect(function(dt)
-        elapsed += dt
-        if elapsed >= 0.1 then
-            elapsed = 0
-            UpdateRadar()
-        end
-    end)
-
-    Gui.Destroying:Connect(function()
-        DragChangedConnection:Disconnect()
-        DragEndedConnection:Disconnect()
-        RadarConnection:Disconnect()
-        AddedConnection:Disconnect()
-        RemovedConnection:Disconnect()
-        SweepTween:Cancel()
-    end)
-
-    UpdateRadar()
-    return Gui
-end
-
-local function stopScanner()
-    local current = radarGui
-    radarGui = nil
-    if current and current.Parent then current:Destroy() end
-    setScanButtonState(false)
-end
-
-connect(scanButton.Activated, function()
-    clickSound()
-    if radarGui and radarGui.Parent then
-        stopScanner()
-        notify("SCAN / Disabled", true)
-        return
-    end
-    local ok, created = pcall(launchScanner)
-    if not ok or not created then
-        local partial = playerGui:FindFirstChild("DeepGreenRadar")
-        if partial then partial:Destroy() end
-        notify("SCAN / Unable to start", false)
-        return
-    end
-    radarGui = created
-    setScanButtonState(true)
-    created.Destroying:Connect(function()
-        if radarGui == created then
+    closeRadarBtn.Activated:Connect(function()
+        radarStep:Disconnect()
+        radarScreen:Destroy()
+        if radarGui == radarScreen then
             radarGui = nil
-            setScanButtonState(false)
+            radarEnabled = false
+            setRadarButtonState(false)
         end
     end)
-    notify("SCAN / Enabled", true)
-end)
+end
 
-featureUI.scanButton = scanButton
-featureStop.scan = stopScanner
+connect(radarButton.Activated, function()
+    clickSound()
+    if radarEnabled then
+        if radarGui then radarGui:Destroy() radarGui = nil end
+        radarEnabled = false
+        setRadarButtonState(false)
+        notify("RADAR / Closed", true)
+        return
+    end
+    radarEnabled = true
+    setRadarButtonState(true)
+    launchRadar()
+    notify("RADAR / Launched", true)
+end)
+featureUI.radarButton = radarButton
+featureStop.radar = function()
+    if radarGui then radarGui:Destroy() radarGui = nil end
+    radarEnabled = false
+    setRadarButtonState(false)
+end
 end
 
 do
 local godButton, godDescription, godHeading, godBorder = actionBox(
-    toolsScroll, "06 / PROTECTION", "God Mode",
-    "The damage mechanism in some script modes doesn’t work on the server or certain monsters."
+    toolsScroll, "06 / SURVIVAL", "God Mode", "Prevent taking damage"
 )
 local godGradient = godButton:FindFirstChildOfClass("UIGradient")
 local godOriginalGradient = godGradient.Color
 local godBorderGradient = godBorder:FindFirstChildOfClass("UIGradient")
 local godEnabled = false
-local godToken = 0
-local characterConnection = nil
-local remoteConnection = nil
-local trackedHumanoids = {}
-local renamedRemotes = setmetatable({}, {__mode = "k"})
-local maxProtectedHealth = 1000000000
+local godConnection = nil
 
 local function setGodButtonState(enabled)
     godGradient.Color = enabled and ColorSequence.new({
@@ -2709,88 +3079,24 @@ local function setGodButtonState(enabled)
     end
 end
 
-local function renameKillRemote(obj)
-    if not godEnabled or not obj:IsA("RemoteEvent") or obj.Name ~= "Kill" then
-        return
-    end
-    local renamed = pcall(function()
-        obj.Name = "KillDEBUGNO"
+local function hookGodMode(character)
+    if not godEnabled then return end
+    local hum = character:WaitForChild("Humanoid", 6)
+    if not hum or not godEnabled then return end
+    hum:GetPropertyChangedSignal("Health"):Connect(function()
+        if godEnabled and hum.Health < hum.MaxHealth then
+            hum.Health = hum.MaxHealth
+        end
     end)
-    if renamed and obj.Name == "KillDEBUGNO" then
-        renamedRemotes[obj] = true
-    end
-end
-
-local function protectHumanoid(humanoid)
-    if not godEnabled or trackedHumanoids[humanoid] then return end
-    local record = {
-        maxHealth = humanoid.MaxHealth,
-        health = humanoid.Health,
-    }
-    trackedHumanoids[humanoid] = record
-
-    local function maintainHealth()
-        if not godEnabled or trackedHumanoids[humanoid] ~= record or not humanoid.Parent then
-            return
-        end
-        if humanoid.MaxHealth ~= maxProtectedHealth then
-            humanoid.MaxHealth = maxProtectedHealth
-        end
-        if humanoid.Health > 0 and humanoid.Health < maxProtectedHealth then
-            humanoid.Health = maxProtectedHealth
-        end
-    end
-
-    record.healthConnection = humanoid.HealthChanged:Connect(maintainHealth)
-    record.maxHealthConnection = humanoid:GetPropertyChangedSignal("MaxHealth"):Connect(maintainHealth)
-    humanoid.MaxHealth = maxProtectedHealth
-    if humanoid.Health > 0 then
-        humanoid.Health = maxProtectedHealth
-    end
-end
-
-local function protectCharacter(character, token)
-    task.spawn(function()
-        local humanoid = character:FindFirstChildOfClass("Humanoid") or character:WaitForChild("Humanoid", 10)
-        if not godEnabled or token ~= godToken or character ~= player.Character then
-            return
-        end
-        if humanoid then protectHumanoid(humanoid) end
-    end)
+    hum.Health = hum.MaxHealth
 end
 
 local function disableGodMode()
-    godToken = godToken + 1
     godEnabled = false
-    if characterConnection then
-        characterConnection:Disconnect()
-        characterConnection = nil
+    if godConnection then
+        godConnection:Disconnect()
+        godConnection = nil
     end
-    if remoteConnection then
-        remoteConnection:Disconnect()
-        remoteConnection = nil
-    end
-
-    for humanoid, record in pairs(trackedHumanoids) do
-        if record.healthConnection then record.healthConnection:Disconnect() end
-        if record.maxHealthConnection then record.maxHealthConnection:Disconnect() end
-        if humanoid.Parent then
-            pcall(function()
-                humanoid.MaxHealth = record.maxHealth
-                if humanoid.Health > 0 then
-                    humanoid.Health = math.clamp(record.health, 0, math.max(record.maxHealth, 0))
-                end
-            end)
-        end
-    end
-    table.clear(trackedHumanoids)
-
-    for remote in pairs(renamedRemotes) do
-        if remote.Parent and remote.Name == "KillDEBUGNO" then
-            pcall(function() remote.Name = "Kill" end)
-        end
-    end
-    table.clear(renamedRemotes)
     setGodButtonState(false)
 end
 
@@ -2801,21 +3107,11 @@ connect(godButton.Activated, function()
         notify("GOD MODE / Disabled", true)
         return
     end
-
     godEnabled = true
-    godToken = godToken + 1
-    local token = godToken
     setGodButtonState(true)
-    remoteConnection = ReplicatedStorage.ChildAdded:Connect(renameKillRemote)
-    for _, remote in ipairs(ReplicatedStorage:GetChildren()) do
-        renameKillRemote(remote)
-    end
-    characterConnection = player.CharacterAdded:Connect(function(character)
-        protectCharacter(character, token)
-    end)
-    if player.Character then
-        protectCharacter(player.Character, token)
-    end
+    local char = player.Character
+    if char then hookGodMode(char) end
+    godConnection = player.CharacterAdded:Connect(hookGodMode)
     notify("GOD MODE / Enabled", true)
 end)
 
@@ -2823,16 +3119,107 @@ featureUI.godButton = godButton
 featureStop.god = disableGodMode
 end
 
-sectionHeader(pages[3], "INTERFACE CONTROL", "03 / VISUAL OPTIONS")
-local motionButton = actionBox(pages[3], "01 / FX", "Motion: ON", "Toggle ambient particles, image drift and animated scanning.")
-local restoreButton = actionBox(pages[3], "02 / LIGHTING", "Restore Lighting", "Disable Night Vision and restore saved lighting values and effects.")
-local settingsNote = label(pages[3], "ALL VISUAL SETTINGS ARE LOCAL TO YOUR CLIENT.", 10, {
-    Size = UDim2.new(1, 0, 0, 24), TextColor3 = C.muted,
-    TextXAlignment = Enum.TextXAlignment.Center,
-})
+sectionHeader(pages[3], "ENVIRONMENT CONTROL", "03 / MOTION & LIGHTING")
 
-local function restoreNightVision()
-    if not lightingBackup then return false end
+do
+local motionButton, motionDescription, motionHeading, motionBorder = actionBox(
+    pages[3], "01 / MOTION", "Motion Toggle", "Toggle player movement"
+)
+local motionGradient = motionButton:FindFirstChildOfClass("UIGradient")
+local motionOriginalGradient = motionGradient.Color
+local motionBorderGradient = motionBorder:FindFirstChildOfClass("UIGradient")
+local motionEnabled = true
+
+local function setMotionButtonState(enabled)
+    motionGradient.Color = enabled and ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(11, 69, 44)),
+        ColorSequenceKeypoint.new(0.44, Color3.fromRGB(37, 151, 77)),
+        ColorSequenceKeypoint.new(0.72, Color3.fromRGB(22, 116, 65)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(9, 65, 42)),
+    }) or motionOriginalGradient
+    motionButton.BackgroundTransparency = enabled and 0.01 or 0.11
+    motionBorderGradient.Enabled = not enabled
+    motionBorder.Color = enabled and Color3.fromRGB(116, 255, 150) or C.gold
+    tween(motionBorder, {Thickness = enabled and 2.9 or 2}, 0.2)
+    for _, child in ipairs(motionButton:GetChildren()) do
+        if child:IsA("TextLabel") then
+            local gold = child:FindFirstChildOfClass("UIGradient")
+            if gold then gold.Enabled = not enabled end
+            child.TextColor3 = enabled and Color3.fromRGB(230, 255, 230) or C.white
+        end
+    end
+end
+
+connect(motionButton.Activated, function()
+    clickSound()
+    motionEnabled = not motionEnabled
+    local char = player.Character
+    local hum = char and char:FindFirstChildOfClass("Humanoid")
+    if hum then
+        hum.WalkSpeed = motionEnabled and 16 or 0
+        hum.JumpPower = motionEnabled and 50 or 0
+    end
+    setMotionButtonState(motionEnabled)
+    notify("MOTION / " .. (motionEnabled and "Enabled" or "Disabled"), true)
+end)
+featureUI.motionButton = motionButton
+featureStop.motion = function()
+    motionEnabled = true
+    local char = player.Character
+    local hum = char and char:FindFirstChildOfClass("Humanoid")
+    if hum then hum.WalkSpeed = 16 hum.JumpPower = 50 end
+    setMotionButtonState(false)
+end
+end
+
+local restoreNightVision
+
+do
+local lightingButton, lightingDescription, lightingHeading, lightingBorder = actionBox(
+    pages[3], "02 / LIGHTING", "Restore Lighting", "Disable Night Vision and restore saved lighting values and effects."
+)
+connect(lightingButton.Activated, function()
+    clickSound()
+    if restoreNightVision and restoreNightVision() then
+        notify("LIGHTING / Restored", true)
+    else
+        notify("LIGHTING / Already at saved default")
+    end
+end)
+featureUI.lightingButton = lightingButton
+end
+
+local nvGradient = nvButton:FindFirstChildOfClass("UIGradient")
+local nvOriginalGradient = nvGradient.Color
+local nvBorderStroke = nvButton:FindFirstChildOfClass("UIStroke")
+local nvBorderGradient = nvBorderStroke:FindFirstChildOfClass("UIGradient")
+local function setNvButtonState(enabled)
+    nvGradient.Color = enabled and ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(11, 69, 44)),
+        ColorSequenceKeypoint.new(0.44, Color3.fromRGB(37, 151, 77)),
+        ColorSequenceKeypoint.new(0.72, Color3.fromRGB(22, 116, 65)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(9, 65, 42)),
+    }) or nvOriginalGradient
+    nvButton.BackgroundTransparency = enabled and 0.01 or 0.11
+    nvBorderGradient.Enabled = not enabled
+    nvBorderStroke.Color = enabled and Color3.fromRGB(116, 255, 150) or C.gold
+    tween(nvBorderStroke, {Thickness = enabled and 2.9 or 2}, 0.2)
+    for _, child in ipairs(nvButton:GetChildren()) do
+        if child:IsA("TextLabel") then
+            local gold = child:FindFirstChildOfClass("UIGradient")
+            if gold then gold.Enabled = not enabled end
+            child.TextColor3 = enabled and Color3.fromRGB(230, 255, 230) or C.white
+        end
+    end
+end
+
+restoreNightVision = function()
+    if not lightingBackup then
+        nightVisionEnabled = false
+        setNvButtonState(false)
+        nvDescription.Text = "Illuminate everything"
+        return false
+    end
     if nvBloom and nvBloom.Parent then nvBloom:Destroy() end
     nvBloom = nil
     for prop, value in pairs(lightingBackup.values) do
@@ -2849,8 +3236,10 @@ local function restoreNightVision()
     for _, effect in ipairs(lightingBackup.removed) do effect.Parent = Lighting end
     lightingBackup, nightVisionEnabled = nil, false
     nvDescription.Text = "Illuminate everything"
+    setNvButtonState(false)
     return true
 end
+
 local function enableNightVision()
     if nightVisionEnabled then return true end
     local names = {"GlobalShadows", "Brightness", "ExposureCompensation", "Ambient",
@@ -2888,27 +3277,10 @@ local function enableNightVision()
     nvBloom.Parent = Lighting
     nightVisionEnabled = true
     nvDescription.Text = "Illuminate everything"
+    setNvButtonState(true)
     return true
 end
 
-local dexBusy = false
-connect(dexButton.Activated, function()
-    if dexBusy then notify("Dex is already loading...") return end
-    clickSound()
-    dexBusy = true
-    notify("DEX++ / Fetching the latest release...")
-    task.spawn(function()
-        local ok = pcall(function()
-            assert(type(loadstring) == "function", "loadstring is unavailable")
-            loadstring(game:HttpGet("https://github.com/AZYsGithub/DexPlusPlus/releases/latest/download/out.lua"))()
-        end)
-        dexBusy = false
-        if alive and gui.Parent then
-            if ok then notify("DEX++ / Launched successfully", true)
-            else notify("DEX++ / Unable to launch", false) end
-        end
-    end)
-end)
 connect(nvButton.Activated, function()
     clickSound()
     local ok = pcall(function()
@@ -2920,347 +3292,529 @@ connect(nvButton.Activated, function()
         notify(nightVisionEnabled and "NIGHT VISION / Enabled" or "NIGHT VISION / Restored", true)
     end
 end)
-connect(motionButton.Activated, function()
+featureStop.nightVision = function()
+    if nightVisionEnabled then restoreNightVision() else setNvButtonState(false) end
+end
+
+connect(dexButton.Activated, function()
     clickSound()
-    animEnabled = not animEnabled
-    for _, child in ipairs(motionButton:GetChildren()) do
-        if child:IsA("TextLabel") and child.Text:find("Motion:") then
-            child.Text = animEnabled and "Motion: ON" or "Motion: OFF"
+    notify("DEX++ / Loading...")
+    task.spawn(function()
+        local ok = pcall(function()
+            assert(type(loadstring) == "function", "loadstring unavailable")
+            loadstring(game:HttpGet("https://raw.githubusercontent.com/infyiff/backup/main/dex.lua"))()
+        end)
+        if alive and gui.Parent then
+            notify(ok and "DEX++ / Launched" or "DEX++ / Unable to launch", ok)
         end
-    end
-    if not animEnabled then
-        for _, item in ipairs(animatedImages) do
-            item.picture.Rotation = 0
-            item.scan.Position = UDim2.new(0, 10, 0, 0)
-        end
-        for _, particle in ipairs(particleList) do particle.object.BackgroundTransparency = 1 end
-        mobileIcon.Rotation = 0
-        mobileScale.Scale = 1
-    end
-    notify(animEnabled and "MOTION FX / Enabled" or "MOTION FX / Disabled")
-end)
-connect(restoreButton.Activated, function()
-    clickSound()
-    if restoreNightVision() then notify("LIGHTING / Restored", true)
-    else notify("LIGHTING / Already at saved default") end
+    end)
 end)
 
-local function layout()
-    if not alive then return end
-    local camera = workspace.CurrentCamera
-    if not camera then return end
-    local w, h = camera.ViewportSize.X, camera.ViewportSize.Y
-    if w < 1 or h < 1 then return end
-    local mobile = (UIS.TouchEnabled and (not UIS.KeyboardEnabled or w < 820)) or w < 670
-    mobileIcon.Visible = UIS.TouchEnabled and phase == "closed"
-    mobileIcon.Size = UDim2.fromOffset(mobile and 49 or 53, mobile and 49 or 53)
-    mobileIcon.Position = UDim2.new(1, -18, 0, mobile and 58 or 64)
-    local pw = math.min(w - (mobile and 22 or 75), mobile and 470 or 910)
-    local ph = math.min(h - (mobile and 58 or 70), mobile and 675 or 645)
-    panel.Size = UDim2.fromOffset(math.max(260, pw), math.max(320, ph))
-    outerHalo.Size, goldEdge.Size = panel.Size, panel.Size
-    local headHeight = mobile and 79 or 95
-    local footerHeight = mobile and 37 or 44
-    header.Size = UDim2.new(1, 0, 0, headHeight)
-    title.Position, title.TextSize = UDim2.fromOffset(19, mobile and 12 or 16), mobile and 19 or 28
-    title.Size = UDim2.new(1, mobile and -118 or -154, 0, 32)
-    subtitle.Position = UDim2.fromOffset(21, mobile and 43 or 52)
-    subtitle.TextSize = mobile and 8 or 10
-    close.Size = UDim2.fromOffset(mobile and 34 or 34, mobile and 34 or 34)
-    close.Position = UDim2.new(1, -48, 0, mobile and 13 or 22)
-    back.Position = UDim2.new(1, mobile and -134 or -150, 0, mobile and 15 or 24)
-    back.Size = UDim2.fromOffset(mobile and 77 or 82, 30)
-    headerRule.Position = UDim2.new(0, 21, 0, headHeight - 6)
-    headerRule.Size = UDim2.new(1, -42, 0, 1)
-    footer.Size = UDim2.new(1, 0, 0, footerHeight)
-    footerText.Text = mobile and "TAP ICON  /  OPEN       •       ×  /  CLOSE" or
-        "L  /  TOGGLE PANEL       •       ESC  /  CLOSE"
-    footerText.TextSize = mobile and 9 or 10
-    pageHolder.Position = UDim2.fromOffset(mobile and 18 or 25, headHeight + 8)
-    pageHolder.Size = UDim2.new(1, mobile and -36 or -50, 1, -(headHeight + footerHeight + 18))
-    toast.Position = UDim2.new(0.5, 0, 1, -(footerHeight + 4))
-    toast.Size = UDim2.fromOffset(math.min(pw - 44, 360), 38)
+local controlScroll = make("ScrollingFrame", pages[3], {
+    Name = "ControlScroll", Position = UDim2.fromOffset(0, 69),
+    Size = UDim2.new(1, 0, 1, -73),
+    BackgroundTransparency = 1, BorderSizePixel = 0,
+    ScrollBarThickness = 3, ScrollBarImageColor3 = C.gold,
+    ScrollingDirection = Enum.ScrollingDirection.Y,
+    CanvasSize = UDim2.fromOffset(0, 0), ZIndex = 14,
+})
+featureUI.motionButton.Parent = controlScroll
+featureUI.lightingButton.Parent = controlScroll
 
-    local pageW = pw - (mobile and 36 or 50)
-    local pageH = ph - headHeight - footerHeight - 18
-    local startY = mobile and 61 or 69
-    if mobile then
-        local gap = 9
-        local ch = math.max(68, math.min(128, math.floor((pageH - startY - 34 - 2 * gap) / 3)))
-        for i, item in ipairs(categories) do
-            item.button.Position = UDim2.fromOffset(2, startY + (i - 1) * (ch + gap))
-            item.button.Size = UDim2.fromOffset(pageW - 4, ch)
-            item.title.TextSize = 20
-            item.title.Position = UDim2.new(0, 14, 1, -30)
-            item.detail.TextSize = 10
+do
+    local function layoutScroll(scroll)
+        local layout = make("UIGridLayout", scroll, {
+            CellSize = UDim2.fromOffset(376, 140),
+            CellPadding = UDim2.fromOffset(12, 12),
+            SortOrder = Enum.SortOrder.LayoutOrder,
+            FillDirectionMaxCells = 2,
+            HorizontalAlignment = Enum.HorizontalAlignment.Center,
+        })
+        make("UIPadding", scroll, {
+            PaddingTop = UDim.new(0, 6), PaddingBottom = UDim.new(0, 10),
+            PaddingLeft = UDim.new(0, 2), PaddingRight = UDim.new(0, 2),
+        })
+        local order = 0
+        for _, child in ipairs(scroll:GetChildren()) do
+            if child:IsA("GuiObject") then
+                order = order + 1
+                child.LayoutOrder = order
+            end
         end
-    else
-        local gap = 14
-        local cw = (pageW - 2 * gap - 4) / 3
-        local ch = math.max(130, math.min(320, pageH - startY - 52))
-        for i, item in ipairs(categories) do
-            item.button.Position = UDim2.fromOffset(2 + (i - 1) * (cw + gap), startY)
-            item.button.Size = UDim2.fromOffset(cw, ch)
-            item.title.TextSize = 23
-            item.detail.TextSize = 11
-        end
+        scroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
+        scroll.CanvasSize = UDim2.fromOffset(0, 0)
     end
-    local top = 72
-    if mobile then
-        local available = pageH - top - 37
-        local g = 11
-        local ch = math.max(70, math.min(158, (available - g) / 2))
-        local toolHeight = math.max(92, math.min(142, math.floor((pageH - 94) / 2)))
-        local toolButtons = {dexButton, nvButton, featureUI.flyButton, featureUI.healthButton, featureUI.scanButton, featureUI.godButton}
-        for i, btn in ipairs(toolButtons) do
-            btn.Position = UDim2.fromOffset(2, 6 + (i - 1) * (toolHeight + g))
-            btn.Size = UDim2.fromOffset(pageW - 9, toolHeight)
-        end
-        local toolBottom = 6 + toolHeight * #toolButtons + g * (#toolButtons - 1)
-        toolsNote.Position = UDim2.fromOffset(4, toolBottom + 9)
-        toolsScroll.CanvasSize = UDim2.fromOffset(0, toolBottom + 48)
-        for i, btn in ipairs({motionButton, restoreButton}) do
-            btn.Position = UDim2.fromOffset(2, top + (i - 1) * (ch + g))
-            btn.Size = UDim2.fromOffset(pageW - 4, ch)
-        end
-        local overviewHeight = math.max(114, math.min(148, math.floor((pageH - 90) / 3)))
-        local xrayButtons = {featureUI.keyButton, featureUI.doorButton, featureUI.jeffButton, featureUI.monsterButton, featureUI.deleteScreechButton, featureUI.reminderButton, featureUI.sprintButton}
-        for i, btn in ipairs(xrayButtons) do
-            btn.Position = UDim2.fromOffset(2, 6 + (i - 1) * (overviewHeight + g))
-            btn.Size = UDim2.fromOffset(pageW - 9, overviewHeight)
-        end
-        overviewScroll.CanvasSize = UDim2.fromOffset(0, overviewHeight * #xrayButtons + g * (#xrayButtons - 1) + 16)
-        featureUI.jeffHeading.TextSize = math.min(21, math.max(17, math.floor((pageW - 30) / 12)))
-        featureUI.monsterHeading.TextSize = 22
-        featureUI.deleteScreechHeading.TextSize = 22
-        featureUI.reminderHeading.TextSize = 22
-        featureUI.sprintHeading.TextSize = 22
-        settingsNote.Position = UDim2.fromOffset(0, math.min(pageH - 24, top + ch * 2 + g + 11))
-    else
-        local g = 15
-        local cw = (pageW - g - 4) / 2
-        local ch = math.max(130, math.min(238, pageH - 142))
-        local toolColumns = 2
-        local toolWidth = (pageW - g * (toolColumns - 1) - 8) / toolColumns
-        local toolHeight = math.max(122, math.min(160, math.floor((pageH - 112 - 2 * g) / 3)))
-        local toolButtons = {dexButton, nvButton, featureUI.flyButton, featureUI.healthButton, featureUI.scanButton, featureUI.godButton}
-        for i, btn in ipairs(toolButtons) do
-            local col = (i - 1) % toolColumns
-            local row = math.floor((i - 1) / toolColumns)
-            btn.Position = UDim2.fromOffset(2 + col * (toolWidth + g), 6 + row * (toolHeight + g))
-            btn.Size = UDim2.fromOffset(toolWidth, toolHeight)
-        end
-        local toolRows = math.ceil(#toolButtons / toolColumns)
-        local toolBottom = 6 + toolHeight * toolRows + g * (toolRows - 1)
-        toolsNote.Position = UDim2.fromOffset(4, toolBottom + 9)
-        toolsScroll.CanvasSize = UDim2.fromOffset(0, toolBottom + 48)
-        for i, btn in ipairs({motionButton, restoreButton}) do
-            btn.Position = UDim2.fromOffset(2 + (i - 1) * (cw + g), top)
-            btn.Size = UDim2.fromOffset(cw, ch)
-        end
-        local xrayGap = 13
-        local xrayWidth = (pageW - xrayGap - 8) / 2
-        local scrollHeight = pageH - 73
-        local xrayHeight = math.max(130, math.min(202, math.floor((scrollHeight - xrayGap - 16) / 2)))
-        local xrayButtons = {featureUI.keyButton, featureUI.doorButton, featureUI.jeffButton, featureUI.monsterButton, featureUI.deleteScreechButton, featureUI.reminderButton, featureUI.sprintButton}
-        local xrayRows = math.ceil(#xrayButtons / 2)
-        for i, btn in ipairs(xrayButtons) do
-            local col = (i - 1) % 2
-            local row = math.floor((i - 1) / 2)
-            btn.Position = UDim2.fromOffset(2 + col * (xrayWidth + xrayGap), 6 + row * (xrayHeight + xrayGap))
-            btn.Size = UDim2.fromOffset(xrayWidth, xrayHeight)
-        end
-        overviewScroll.CanvasSize = UDim2.fromOffset(0, xrayHeight * xrayRows + xrayGap * (xrayRows - 1) + 16)
-        featureUI.jeffHeading.TextSize = math.max(17, math.min(23, math.floor(xrayWidth / 13)))
-        featureUI.monsterHeading.TextSize = math.max(19, math.min(23, math.floor(xrayWidth / 13)))
-        featureUI.deleteScreechHeading.TextSize = math.max(19, math.min(23, math.floor(xrayWidth / 13)))
-        featureUI.reminderHeading.TextSize = math.max(17, math.min(23, math.floor(xrayWidth / 14)))
-        featureUI.sprintHeading.TextSize = math.max(19, math.min(23, math.floor(xrayWidth / 13)))
-        settingsNote.Position = UDim2.fromOffset(0, top + ch + 18)
-    end
-end
+    layoutScroll(overviewScroll)
+    layoutScroll(toolsScroll)
+    layoutScroll(controlScroll)
 
-local function resetLanding()
-    currentPage = 0
-    switching = false
-    back.Visible = false
-    for index, page in pairs(pages) do
-        page.Visible = index == 0
-        page.GroupTransparency = index == 0 and 0 or 1
-        page.Position = UDim2.fromOffset(0, 0)
+    for i, cat in ipairs(categories) do
+        cat.button.Position = i == 1 and UDim2.fromOffset(6, 61) or UDim2.fromOffset(423, 61 + (i - 2) * 159)
+        cat.button.Size = i == 1 and UDim2.fromOffset(400, 306) or UDim2.fromOffset(360, 147)
+        local corner = cat.button:FindFirstChildOfClass("UICorner")
+        if corner then corner.CornerRadius = UDim.new(0, 8) end
     end
-end
-local function navigate(index)
-    if phase ~= "open" or switching or currentPage == index then return end
-    switching = true
-    clickSound()
-    local from = pages[currentPage]
-    local into = pages[index]
-    local direction = index == 0 and -1 or 1
-    into.Visible = true
-    into.Position = UDim2.fromOffset(direction * 48, 0)
-    into.GroupTransparency = 1
-    tween(from, {Position = UDim2.fromOffset(-direction * 34, 0), GroupTransparency = 1}, 0.22)
-    tween(into, {Position = UDim2.fromOffset(0, 0), GroupTransparency = 0}, 0.39,
-        Enum.EasingStyle.Quint, easeOut)
-    currentPage = index
-    back.Visible = index ~= 0
-    local token = stateToken
-    task.delay(0.4, function()
-        if not alive or token ~= stateToken then return end
-        from.Visible = false
-        from.Position = UDim2.fromOffset(0, 0)
-        switching = false
+
+    local minBtn = make("TextButton", header, {
+        Text = "−", FontFace = bodyFont, TextSize = 23,
+        TextColor3 = C.pale, BackgroundColor3 = C.dark2,
+        AutoButtonColor = false, Size = UDim2.fromOffset(34, 34),
+        Position = UDim2.new(1, -98, 0, 22), ZIndex = 14,
+    })
+    round(minBtn, 9)
+    metal(stroke(minBtn, 0.2, 1.4))
+    local statsLine = label(footer, "", 10, {
+        Position = UDim2.fromOffset(26, 3), Size = UDim2.new(1, -52, 0, 15),
+        TextXAlignment = Enum.TextXAlignment.Center, ZIndex = 14,
+    })
+    footerText.Position = UDim2.fromOffset(26, 19)
+    footerText.Text = "L / TOGGLE     •     ESC / CLOSE     •     RSHIFT / TOGGLE"
+
+    local portal = make("CanvasGroup", gui, {
+        Name = "QuantumPortal", AnchorPoint = Vector2.new(0.5, 0.5),
+        Position = panel.Position, Size = UDim2.fromScale(1, 1),
+        BackgroundTransparency = 1, GroupTransparency = 0, Visible = false, ZIndex = 6,
+    })
+    local rings = {}
+    for i = 1, 4 do
+        local r = make("ImageLabel", portal, {
+            AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5),
+            Size = UDim2.fromOffset(100, 100), BackgroundTransparency = 1,
+            Image = "rbxassetid://12549667544", ImageColor3 = ({C.gold, C.cyan, C.plasma, C.ice})[i],
+            ImageTransparency = 1, ScaleType = Enum.ScaleType.Fit, ZIndex = 6,
+        })
+        table.insert(rings, r)
+    end
+    local beams = {}
+    for i = 1, 12 do
+        local beam = make("Frame", portal, {
+            AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5),
+            Size = UDim2.fromOffset(0, 1), Rotation = (i - 1) * 30,
+            BackgroundColor3 = i % 2 == 0 and C.gold or C.cyan,
+            BackgroundTransparency = 1, BorderSizePixel = 0, ZIndex = 6,
+        })
+        gradient(beam, {C.cyan, C.pale, C.gold}, 0, NumberSequence.new({
+            NumberSequenceKeypoint.new(0, 1), NumberSequenceKeypoint.new(0.4, 0.1),
+            NumberSequenceKeypoint.new(0.6, 0.1), NumberSequenceKeypoint.new(1, 1),
+        }))
+        table.insert(beams, beam)
+    end
+    local sweep = make("Frame", panel, {
+        Name = "TransitionSweep", AnchorPoint = Vector2.new(0.5, 0.5),
+        Position = UDim2.fromScale(-0.3, 0.5), Size = UDim2.fromScale(0.3, 1.6),
+        Rotation = 16, BackgroundColor3 = C.cyan, BackgroundTransparency = 1,
+        BorderSizePixel = 0, ZIndex = 28,
+    })
+    gradient(sweep, {C.cyan, C.pale, C.plasma}, 0, NumberSequence.new({
+        NumberSequenceKeypoint.new(0, 1), NumberSequenceKeypoint.new(0.5, 0.35),
+        NumberSequenceKeypoint.new(1, 1),
+    }))
+    local pageScales = {}
+    for i = 0, 3 do
+        pageScales[i] = make("UIScale", pages[i], {Scale = 1})
+    end
+    local pageToken = 0
+    local minimized = false
+    local destroyPending = false
+    local viewScale, zoom = 1, 1
+    local baseSize = Vector2.new(840, 580)
+    local center = UDim2.fromScale(0.5, 0.5)
+    local armorParts, armorLights = {}, {}
+    local function armorPart(name, position, size, angle)
+        local part = make("Frame", outerHalo, {
+            Name = name, AnchorPoint = Vector2.new(0.5, 0.5), Position = position,
+            Size = size, Rotation = angle, BackgroundColor3 = Color3.new(1, 1, 1),
+            BackgroundTransparency = 1, BorderSizePixel = 0, ZIndex = 8,
+        })
+        round(part, 5)
+        gradient(part, {Color3.fromRGB(9, 23, 39), Color3.fromRGB(35, 66, 93), Color3.fromRGB(10, 16, 35)}, 30)
+        local edge = stroke(part, 1, 1.8)
+        metal(edge)
+        table.insert(armorParts, {part = part, edge = edge})
+        return part
+    end
+    local function armorLight(parent, position, size, angle)
+        local light = make("Frame", parent, {
+            AnchorPoint = Vector2.new(0.5, 0.5), Position = position, Size = size,
+            Rotation = angle, BackgroundColor3 = C.energy, BackgroundTransparency = 1,
+            BorderSizePixel = 0, ZIndex = 9,
+        })
+        round(light, 3)
+        gradient(light, {C.cyan, C.energy, C.pale, C.cyan}, 0)
+        table.insert(armorLights, light)
+    end
+    for _, side in ipairs({-1, 1}) do
+        local x = side == -1 and 0 or 1
+        local wing = armorPart("SuspendedWing", UDim2.new(x, side * 17, 0.5, 0), UDim2.fromOffset(48, 272), 0)
+        armorPart("UpperShoulder", UDim2.new(x, side * 5, 0.5, -113), UDim2.fromOffset(44, 116), -side * 32)
+        armorPart("LowerShoulder", UDim2.new(x, side * 5, 0.5, 113), UDim2.fromOffset(44, 116), side * 32)
+        for j = 1, 5 do
+            armorLight(wing, UDim2.new(0.5, side * 17, 0, 62 + j * 24), UDim2.fromOffset(23, 3), -side * 28)
+        end
+        local tip = armorPart("EnergyFin", UDim2.new(x, side * 31, 0.5, 0), UDim2.fromOffset(16, 102), 0)
+        armorLight(tip, UDim2.fromScale(0.5, 0.5), UDim2.fromOffset(3, 72), 0)
+    end
+    local crown = armorPart("CommandCrown", UDim2.new(0.5, 0, 0, 0), UDim2.fromOffset(302, 48), 0)
+    armorLight(crown, UDim2.new(0.5, 0, 0, 8), UDim2.fromOffset(132, 3), 0)
+    local keel = armorPart("EnergyKeel", UDim2.new(0.5, 0, 1, 0), UDim2.fromOffset(250, 42), 0)
+    armorLight(keel, UDim2.new(0.5, 0, 1, -7), UDim2.fromOffset(98, 3), 0)
+    local crownText = label(crown, "N E X U S  /  0 7", 10, {
+        Position = UDim2.fromOffset(0, 9), Size = UDim2.new(1, 0, 0, 14),
+        TextXAlignment = Enum.TextXAlignment.Center, ZIndex = 10, TextTransparency = 1,
+    })
+    local keelText = label(keel, "O V E R D R I V E", 10, {
+        Position = UDim2.new(0, 0, 1, -20), Size = UDim2.new(1, 0, 0, 12),
+        TextXAlignment = Enum.TextXAlignment.Center, ZIndex = 10, TextTransparency = 1,
+    })
+    local clock = 0
+    local frames, elapsed, statElapsed, fps = 0, 0, 0, 0
+    local dragInput, dragStart, dragPosition
+    local function fit()
+        local viewport = gui.AbsoluteSize
+        if viewport.X <= 0 or viewport.Y <= 0 then return end
+        viewScale = math.min(1, (viewport.X - 24) / (baseSize.X + 100), (viewport.Y - 32) / (baseSize.Y + 60))
+        viewScale = math.max(0.05, viewScale)
+        local sigilSize = math.max(baseSize.X * viewScale * 1.5, math.min(viewport.X, viewport.Y) * 1.35)
+        plasmaRing.Size = UDim2.fromOffset(sigilSize, sigilSize)
+    end
+    local function syncGeometry()
+        panelScale.Scale = viewScale * zoom
+        goldEdgeScale.Scale = panelScale.Scale
+        outerHaloScale.Scale = panelScale.Scale * 1.018
+        goldEdge.Position = panel.Position
+        outerHalo.Position = panel.Position
+        goldEdge.Size = panel.Size
+        outerHalo.Size = panel.Size
+        plasmaRing.Position = panel.Position
+        portal.Position = panel.Position
+        sigilOverlay.Position = panel.Position
+        starBurstHolder.Position = panel.Position
+        for _, data in ipairs(armorParts) do
+            data.part.Visible = not minimized
+            data.part.BackgroundTransparency = 0.13 + 0.87 * panel.GroupTransparency
+            data.edge.Transparency = 0.22 + 0.78 * panel.GroupTransparency
+        end
+        crownText.TextTransparency = panel.GroupTransparency
+        keelText.TextTransparency = panel.GroupTransparency
+        for i, light in ipairs(armorLights) do
+            light.BackgroundTransparency = 1 - (1 - panel.GroupTransparency) * (0.66 + 0.25 * math.sin(clock * 3.2 - i * 0.48))
+        end
+    end
+    fit()
+    connect(gui:GetPropertyChangedSignal("AbsoluteSize"), fit)
+    local function valid(token)
+        return alive and gui.Parent and stateToken == token
+    end
+    local function sweepAcross()
+        if not animEnabled then return end
+        sweep.Position = UDim2.fromScale(-0.3, 0.5)
+        sweep.BackgroundTransparency = 0.68
+        tween(sweep, {Position = UDim2.fromScale(1.3, 0.5), BackgroundTransparency = 1}, 0.52, Enum.EasingStyle.Quart)
+    end
+    local function portalBurst(token, entering)
+        portal.GroupTransparency = 0
+        starBurstHolder.GroupTransparency = 0
+        portal.Visible = true
+        sigilOverlay.Visible = true
+        starBurstHolder.Visible = true
+        local unit = math.min(gui.AbsoluteSize.X, gui.AbsoluteSize.Y)
+        local radius = math.max(120, unit * 0.72)
+        sigilOverlay.Size = UDim2.fromOffset(entering and radius * 0.27 or radius, entering and radius * 0.27 or radius)
+        sigilOverlay.ImageTransparency = 0.38
+        tween(sigilOverlay, {Size = UDim2.fromOffset(entering and radius * 1.25 or 20, entering and radius * 1.25 or 20), ImageTransparency = 1}, entering and 0.8 or 0.48, Enum.EasingStyle.Quint)
+        for i, r in ipairs(rings) do
+            local target = radius * (0.65 + i * 0.32)
+            local initial = entering and target * 0.22 or target
+            r.Size = UDim2.fromOffset(initial, initial)
+            r.ImageTransparency = 0.3 + i * 0.09
+            tween(r, {Size = UDim2.fromOffset(entering and target or 12, entering and target or 12), ImageTransparency = 1}, entering and (0.45 + i * 0.09) or (0.32 + i * 0.035), Enum.EasingStyle.Quart)
+        end
+        for i, beam in ipairs(beams) do
+            beam.Size = UDim2.fromOffset(entering and 8 or radius * 1.4, 1 + i % 2)
+            beam.BackgroundTransparency = 0.48
+            tween(beam, {Size = UDim2.fromOffset(entering and radius * 1.8 or 1, 1), BackgroundTransparency = 1}, entering and 0.58 or 0.4, Enum.EasingStyle.Quint)
+        end
+        for _, item in ipairs(starBursts) do
+            local obj = item.obj
+            if activeTweens[obj] then activeTweens[obj]:Cancel() end
+            local distance = item.dist * math.min(1, unit / 520)
+            local destination = UDim2.new(0.5, math.cos(item.angle) * distance, 0.5, math.sin(item.angle) * distance)
+            obj.Position = entering and UDim2.fromScale(0.5, 0.5) or destination
+            obj.ImageTransparency = 1
+            task.delay(item.delay * (entering and 0.55 or 0.35), function()
+                if not valid(token) then return end
+                obj.ImageTransparency = 0.1
+                tween(obj, {Position = entering and destination or UDim2.fromScale(0.5, 0.5), ImageTransparency = 1, Rotation = obj.Rotation + 150}, entering and 0.62 or 0.42, Enum.EasingStyle.Quart)
+            end)
+        end
+        task.delay(entering and 0.95 or 0.68, function()
+            if valid(token) then
+                portal.Visible = false
+                sigilOverlay.Visible = false
+                starBurstHolder.Visible = false
+            end
+        end)
+    end
+    local function goToPage(index)
+        if not alive or switching or index == currentPage then return end
+        if not pages[index] then return end
+        switching = true
+        pageToken = pageToken + 1
+        local token = pageToken
+        local prev = currentPage
+        currentPage = index
+        back.Visible = index ~= 0
+        local direction = index == 0 and -1 or 1
+        local oldPage, newPage = pages[prev], pages[index]
+        newPage.Position = UDim2.fromOffset(48 * direction, 0)
+        newPage.GroupTransparency = 1
+        newPage.Visible = true
+        pageScales[index].Scale = 0.975
+        tween(oldPage, {GroupTransparency = 1, Position = UDim2.fromOffset(-40 * direction, 0)}, 0.24, Enum.EasingStyle.Quart)
+        tween(newPage, {GroupTransparency = 0, Position = UDim2.fromOffset(0, 0)}, 0.42, Enum.EasingStyle.Quint)
+        tween(pageScales[index], {Scale = 1}, 0.42, Enum.EasingStyle.Quint)
+        sweepAcross()
+        task.delay(0.44, function()
+            if not alive or token ~= pageToken then return end
+            oldPage.Visible = false
+            oldPage.Position = UDim2.fromOffset(0, 0)
+            switching = false
+        end)
+    end
+    for i, cat in ipairs(categories) do
+        connect(cat.button.Activated, function()
+            clickSound()
+            goToPage(i)
+        end)
+    end
+    connect(back.Activated, function()
+        clickSound()
+        goToPage(0)
     end)
-end
-for i, item in ipairs(categories) do
-    connect(item.button.Activated, function() navigate(i) end)
-end
-connect(back.Activated, function() navigate(0) end)
-
-local function openPanel()
-    if phase == "open" or phase == "opening" then return end
-    stateToken = stateToken + 1
-    local token = stateToken
-    phase = "opening"
-    resetLanding()
-    layout()
-    dim.Visible = true
-    fx.Visible = true
-    panel.Visible = true
-    outerHalo.Visible, goldEdge.Visible = true, true
-    mobileIcon.Visible = false
-    unlockCursor()
-    panel.Position = UDim2.fromScale(0.5, 0.56)
-    outerHalo.Position, goldEdge.Position = panel.Position, panel.Position
-    panel.GroupTransparency = 1
-    panelScale.Scale, outerHaloScale.Scale, goldEdgeScale.Scale = 0.88, 0.88, 0.88
-    outerHaloStroke.Transparency, goldEdgeStroke.Transparency = 1, 1
-    tween(dim, {BackgroundTransparency = 0.59}, 0.38)
-    tween(panel, {Position = UDim2.fromScale(0.5, 0.5), GroupTransparency = 0}, 0.55,
-        Enum.EasingStyle.Back, easeOut)
-    tween(panelScale, {Scale = 1}, 0.5, Enum.EasingStyle.Quint, easeOut)
-    tween(outerHalo, {Position = UDim2.fromScale(0.5, 0.5)}, 0.55, Enum.EasingStyle.Back, easeOut)
-    tween(goldEdge, {Position = UDim2.fromScale(0.5, 0.5)}, 0.55, Enum.EasingStyle.Back, easeOut)
-    tween(outerHaloScale, {Scale = 1}, 0.5, Enum.EasingStyle.Quint, easeOut)
-    tween(goldEdgeScale, {Scale = 1}, 0.5, Enum.EasingStyle.Quint, easeOut)
-    tween(outerHaloStroke, {Transparency = 0.73}, 0.45)
-    tween(goldEdgeStroke, {Transparency = 0.08}, 0.45)
-    task.delay(0.56, function()
-        if alive and stateToken == token then phase = "open" end
+    local zoomDriver = make("NumberValue", gui, {Value = 1})
+    connect(zoomDriver.Changed, function(value)
+        zoom = value
+        syncGeometry()
     end)
-end
-local function closePanel()
-    if phase == "closed" or phase == "closing" then return end
-    stateToken = stateToken + 1
-    local token = stateToken
-    phase = "closing"
-    switching = false
-    toast.Visible = false
-    tween(dim, {BackgroundTransparency = 1}, 0.33)
-    tween(panel, {Position = UDim2.fromScale(0.5, 0.56), GroupTransparency = 1},
-        0.31, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
-    tween(panelScale, {Scale = 0.91}, 0.31, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
-    tween(outerHalo, {Position = UDim2.fromScale(0.5, 0.56)}, 0.31,
-        Enum.EasingStyle.Quad, Enum.EasingDirection.In)
-    tween(goldEdge, {Position = UDim2.fromScale(0.5, 0.56)}, 0.31,
-        Enum.EasingStyle.Quad, Enum.EasingDirection.In)
-    tween(outerHaloScale, {Scale = 0.91}, 0.31, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
-    tween(goldEdgeScale, {Scale = 0.91}, 0.31, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
-    tween(outerHaloStroke, {Transparency = 1}, 0.28)
-    tween(goldEdgeStroke, {Transparency = 1}, 0.28)
-    task.delay(0.34, function()
-        if not alive or token ~= stateToken then return end
-        phase = "closed"
+    local function openPanel()
+        if not alive or destroyPending or phase == "open" or phase == "opening" then return end
+        stateToken = stateToken + 1
+        local token = stateToken
+        phase = "opening"
+        gui.Enabled = true
+        panel.Visible = true
+        dim.Visible = true
+        fx.GroupTransparency = 1
+        fx.Visible = true
+        portal.GroupTransparency = 0
+        starBurstHolder.GroupTransparency = 0
+        outerHalo.Visible = true
+        goldEdge.Visible = true
+        plasmaRing.Visible = true
+        if activeTweens[panel] then activeTweens[panel]:Cancel() end
+        if activeTweens[zoomDriver] then activeTweens[zoomDriver]:Cancel() end
+        panel.GroupTransparency = 1
+        zoomDriver.Value = 0.63
+        panel.Position = UDim2.new(center.X.Scale, center.X.Offset, center.Y.Scale, center.Y.Offset + 32)
+        syncGeometry()
+        unlockCursor()
+        tween(dim, {BackgroundTransparency = 0.24}, 0.48)
+        tween(fx, {GroupTransparency = 0}, 0.58, Enum.EasingStyle.Quint)
+        tween(plasmaRing, {ImageTransparency = 0.69}, 0.65)
+        tween(outerHaloStroke, {Transparency = 0.72}, 0.6)
+        tween(goldEdgeStroke, {Transparency = 0.12}, 0.55)
+        if animEnabled then portalBurst(token, true) end
+        task.delay(animEnabled and 0.12 or 0, function()
+            if not valid(token) then return end
+            tween(panel, {GroupTransparency = 0, Position = center}, 0.56, Enum.EasingStyle.Quint)
+            tween(zoomDriver, {Value = 1}, 0.58, Enum.EasingStyle.Quint)
+            sweepAcross()
+        end)
+        task.delay(0.72, function()
+            if valid(token) then phase = "open" end
+        end)
+    end
+    local cleanup
+    local function closePanel(destroyAfter)
+        if not alive or phase == "closed" or phase == "closing" then return end
+        stateToken = stateToken + 1
+        local token = stateToken
+        phase = "closing"
+        destroyPending = destroyAfter == true
+        dragInput, dragStart, dragPosition = nil, nil, nil
         restoreCursor()
-        panel.Visible = false
-        outerHalo.Visible, goldEdge.Visible = false, false
-        dim.Visible = false
-        fx.Visible = false
-        layout()
+        playMagicSound()
+        if animEnabled then portalBurst(token, false) end
+        tween(panel, {GroupTransparency = 1}, 0.56, Enum.EasingStyle.Quart, Enum.EasingDirection.In)
+        tween(zoomDriver, {Value = 0.68}, 0.58, Enum.EasingStyle.Quart, Enum.EasingDirection.In)
+        tween(dim, {BackgroundTransparency = 1}, 0.56, Enum.EasingStyle.Quart, Enum.EasingDirection.In)
+        tween(fx, {GroupTransparency = 1}, 0.58, Enum.EasingStyle.Quart, Enum.EasingDirection.In)
+        tween(portal, {GroupTransparency = 1}, 0.58, Enum.EasingStyle.Quart, Enum.EasingDirection.In)
+        tween(starBurstHolder, {GroupTransparency = 1}, 0.58, Enum.EasingStyle.Quart, Enum.EasingDirection.In)
+        tween(sigilOverlay, {ImageTransparency = 1}, 0.56, Enum.EasingStyle.Quart, Enum.EasingDirection.In)
+        tween(outerHaloStroke, {Transparency = 1}, 0.52, Enum.EasingStyle.Quart, Enum.EasingDirection.In)
+        tween(goldEdgeStroke, {Transparency = 1}, 0.52, Enum.EasingStyle.Quart, Enum.EasingDirection.In)
+        tween(plasmaRing, {ImageTransparency = 1}, 0.56, Enum.EasingStyle.Quart, Enum.EasingDirection.In)
+        task.delay(0.7, function()
+            if not valid(token) then return end
+            panel.Visible = false
+            dim.Visible = false
+            fx.Visible = false
+            outerHalo.Visible = false
+            goldEdge.Visible = false
+            plasmaRing.Visible = false
+            portal.Visible = false
+            sigilOverlay.Visible = false
+            starBurstHolder.Visible = false
+            for _, animation in pairs(activeTweens) do animation:Cancel() end
+            table.clear(activeTweens)
+            phase = "closed"
+        end)
+        if destroyAfter == true then
+            task.delay(1.08, function()
+                if valid(token) then cleanup(true) end
+            end)
+        end
+    end
+    local function togglePanel()
+        if phase == "open" or phase == "opening" then closePanel() else openPanel() end
+    end
+    connect(close.Activated, function()
+        clickSound()
+        closePanel(true)
     end)
+    connect(mobileIcon.Activated, function()
+        clickSound()
+        togglePanel()
+    end)
+    connect(mobileIcon.MouseButton1Down, function() tween(mobileScale, {Scale = 0.9}, 0.1) end)
+    connect(mobileIcon.MouseButton1Up, function() tween(mobileScale, {Scale = 1}, 0.2, Enum.EasingStyle.Back) end)
+    connect(UIS.InputBegan, function(input, processed)
+        if processed or UIS:GetFocusedTextBox() then return end
+        if input.KeyCode == Enum.KeyCode.L or input.KeyCode == Enum.KeyCode.RightShift then
+            togglePanel()
+        elseif input.KeyCode == Enum.KeyCode.Escape then
+            closePanel()
+        end
+    end)
+    connect(minBtn.Activated, function()
+        if phase ~= "open" then return end
+        clickSound()
+        minimized = not minimized
+        minBtn.Text = minimized and "+" or "−"
+        pageHolder.Visible = not minimized
+        footer.Visible = not minimized
+        toast.Visible = false
+        tween(panel, {Size = UDim2.fromOffset(840, minimized and 90 or 580)}, 0.35, Enum.EasingStyle.Quint)
+        if not minimized then sweepAcross() end
+    end)
+    header.Active = true
+    connect(header.InputBegan, function(input)
+        if phase ~= "open" then return end
+        if input.UserInputType ~= Enum.UserInputType.MouseButton1 and input.UserInputType ~= Enum.UserInputType.Touch then return end
+        local p = input.Position
+        if p.X >= header.AbsolutePosition.X + header.AbsoluteSize.X - 200 * viewScale then return end
+        dragInput, dragStart, dragPosition = input, p, panel.Position
+    end)
+    connect(UIS.InputChanged, function(input)
+        if not dragInput then return end
+        if input ~= dragInput and not (dragInput.UserInputType == Enum.UserInputType.MouseButton1 and input.UserInputType == Enum.UserInputType.MouseMovement) then return end
+        local delta = input.Position - dragStart
+        center = UDim2.new(dragPosition.X.Scale, dragPosition.X.Offset + delta.X, dragPosition.Y.Scale, dragPosition.Y.Offset + delta.Y)
+        panel.Position = center
+        syncGeometry()
+    end)
+    connect(UIS.InputEnded, function(input)
+        if input == dragInput then dragInput = nil end
+    end)
+    connect(RS.RenderStepped, function(dt)
+        if not alive then return end
+        clock = clock + dt
+        syncGeometry()
+        frames, elapsed, statElapsed = frames + 1, elapsed + dt, statElapsed + dt
+        if elapsed >= 1 then
+            fps = math.floor(frames / elapsed + 0.5)
+            frames, elapsed = 0, 0
+        end
+        if statElapsed >= 0.5 and panel.Visible then
+            statElapsed = 0
+            local char = player.Character
+            local hum = char and char:FindFirstChildOfClass("Humanoid")
+            local root = char and char:FindFirstChild("HumanoidRootPart")
+            local ping = "N/A"
+            pcall(function() ping = tostring(math.floor(game:GetService("Stats").Network.ServerStatsItem["Data Ping"]:GetValue())) .. "ms" end)
+            local pos = root and root.Position
+            statsLine.Text = string.format("HP %s   •   FPS %d   •   PING %s   •   XYZ %s", hum and string.format("%d/%d", math.floor(hum.Health), math.floor(hum.MaxHealth)) or "N/A", fps, ping, pos and string.format("%.0f %.0f %.0f", pos.X, pos.Y, pos.Z) or "N/A")
+        end
+        if not animEnabled then return end
+        mobileSigilRing.Rotation = (clock * 24) % 360
+        if phase == "closed" and not portal.Visible then return end
+        for i, gr in ipairs(borderGradients) do
+            if gr.Parent then gr.Rotation = (clock * 46 + i * 13) % 360 end
+        end
+        for i, gr in ipairs(titleGradients) do
+            if gr.Parent then gr.Offset = Vector2.new(math.sin(clock * 1.5 + i * 0.3) * 0.22, 0) end
+        end
+        for _, data in ipairs(particleList) do
+            data.y = (data.y - dt * data.speed) % 1
+            data.object.Position = UDim2.fromScale((data.x + math.sin(clock * 0.6 + data.phase) * 0.035) % 1, data.y)
+            data.object.BackgroundTransparency = 0.47 + 0.28 * math.sin(clock * 1.9 + data.phase)
+            if data.isStar then data.object.Rotation = (clock * 22 + data.phase * 57) % 360 end
+        end
+        for _, data in ipairs(starParticleList) do
+            data.y = (data.y - dt * data.speed) % 1
+            local x = (data.x + math.sin(clock * data.drift + data.phase) * 0.018) % 1
+            data.object.Position = UDim2.fromScale(x, data.y)
+            data.object.Rotation = (data.object.Rotation + dt * data.spin) % 360
+            data.object.ImageTransparency = 0.58 + 0.18 * math.sin(clock * data.pulse + data.phase)
+        end
+        local y = (clock * 0.22) % 1.12 - 0.06
+        scanBeam.Position = UDim2.fromScale(0, y)
+        scanGlow.Position = UDim2.fromScale(0, y)
+        for i, star in ipairs(cornerStarList) do
+            star.Rotation = (clock * 34 + i * 90) % 360
+            star.ImageTransparency = 0.25 + 0.22 * math.sin(clock * 2 + i)
+        end
+        for _, data in ipairs(animatedImages) do
+            if data.picture.Parent and landing.Visible then
+                data.picture.Position = UDim2.fromScale(-0.065 + math.sin(clock * 0.7 + data.index) * 0.025, -0.065 + math.cos(clock * 0.6 + data.index) * 0.025)
+                data.scan.Position = UDim2.new(0, 10, (clock * 0.29 + data.index * 0.3) % 1, 0)
+                if data.core then
+                    data.core.Rotation = (clock * (data.index == 2 and -21 or 16) + data.index * 37) % 360
+                    data.core.ImageTransparency = 0.27 + 0.12 * math.sin(clock * 2.1 + data.index)
+                    data.bezel.Rotation = (-clock * 9 + data.index * 15) % 360
+                end
+            end
+        end
+        headerSigilBg.Rotation = (clock * 17) % 360
+        plasmaRing.Rotation = (clock * 8) % 360
+        sigilOverlay.Rotation = (clock * 105) % 360
+        cursorRing.Rotation = (clock * 110) % 360
+        statusDotGlow.Transparency = 0.5 + math.sin(clock * 2.8) * 0.2
+        if phase == "open" then
+            outerHaloStroke.Transparency = 0.72 + math.sin(clock * 2) * 0.1
+            cyanInnerStroke.Transparency = 0.7 + math.sin(clock * 1.6) * 0.13
+        end
+        for i, ring in ipairs(rings) do
+            ring.Rotation = (clock * (i % 2 == 0 and -68 or 48) + i * 30) % 360
+        end
+    end)
+    cleanup = function(destroy)
+        if not alive then return end
+        stateToken = stateToken + 1
+        pageToken = pageToken + 1
+        restoreCursor()
+        RS:UnbindFromRenderStep(cursorStepName)
+        for _, stop in pairs(featureStop) do pcall(stop) end
+        alive = false
+        for _, connection in ipairs(connections) do connection:Disconnect() end
+        for _, animation in pairs(activeTweens) do animation:Cancel() end
+        table.clear(connections)
+        table.clear(activeTweens)
+        if destroy and gui.Parent then gui:Destroy() end
+    end
+    connect(shutdown.Event, function() cleanup(true) end)
+    connect(gui.Destroying, function() cleanup(false) end)
+    openPanel()
+    notify("SYSTEM / Loaded", true)
 end
-local function togglePanel()
-    clickSound()
-    if phase == "open" or phase == "opening" then closePanel() else openPanel() end
-end
-connect(close.Activated, function() clickSound(); closePanel() end)
-connect(dim.Activated, function() clickSound(); closePanel() end)
-connect(mobileIcon.Activated, function() clickSound(); openPanel() end)
-connect(UIS.InputBegan, function(input, processed)
-    if processed or UIS:GetFocusedTextBox() then return end
-    if input.KeyCode == Enum.KeyCode.L then togglePanel()
-    elseif input.KeyCode == Enum.KeyCode.Escape then closePanel() end
-end)
-connect(close.MouseEnter, function() tween(close, {BackgroundColor3 = Color3.fromRGB(135, 81, 62)}, 0.18) end)
-connect(close.MouseLeave, function() tween(close, {BackgroundColor3 = Color3.fromRGB(80, 63, 50)}, 0.18) end)
-connect(mobileIcon.MouseEnter, function() tween(mobileScale, {Scale = 1.12}, 0.16) end)
-connect(mobileIcon.MouseLeave, function() tween(mobileScale, {Scale = 1}, 0.16) end)
-
-local elapsed, acc = 0, 0
-connect(RS.RenderStepped, function(dt)
-    if not alive or not animEnabled then return end
-    elapsed, acc = elapsed + dt, acc + dt
-    if acc < 1 / 30 then return end
-    acc = acc % (1 / 30)
-    if mobileIcon.Visible then
-        mobileScale.Scale = 1 + math.sin(elapsed * 2.4) * 0.052
-        mobileIcon.Rotation = math.sin(elapsed * 1.45) * 2.4
-        mobileBorderGrad.Rotation = (elapsed * 33) % 360
-    end
-    if not panel.Visible then return end
-    panelBorderGrad.Rotation = (elapsed * 18) % 360
-    outerHaloGradient.Rotation = (elapsed * 14) % 360
-    goldEdgeGradient.Rotation = (elapsed * 18 + 34) % 360
-    cursorGradient.Rotation = (elapsed * 55) % 360
-    panelGradient.Rotation = 112 + math.sin(elapsed * 0.34) * 8
-    for i, gr in ipairs(titleGradients) do
-        if gr.Parent then gr.Rotation = math.sin(elapsed * 0.47 + i * 0.35) * 12 end
-    end
-    for i, gr in ipairs(borderGradients) do
-        if gr.Parent then gr.Rotation = (elapsed * 14 + i * 38) % 360 end
-    end
-    for _, pic in ipairs(animatedImages) do
-        pic.picture.Rotation = math.sin(elapsed * 0.72 + pic.index) * 1.55
-        pic.picture.Position = UDim2.fromScale(-0.065 + math.sin(elapsed * 0.3 + pic.index) * 0.012,
-            -0.065 + math.cos(elapsed * 0.33 + pic.index) * 0.012)
-        pic.scan.Position = UDim2.new(0, 10, (elapsed * 0.18 + pic.index * 0.21) % 1, 0)
-    end
-    for _, particle in ipairs(particleList) do
-        local p = particle.object
-        p.Position = UDim2.new(particle.x, math.sin(elapsed * 0.4 + particle.phase) * 9,
-            (particle.y - elapsed * particle.speed) % 1, 0)
-        p.BackgroundTransparency = 0.40 + math.sin(elapsed + particle.phase) * 0.15
-    end
-end)
-
-local camera = workspace.CurrentCamera
-if camera then connect(camera:GetPropertyChangedSignal("ViewportSize"), layout) end
-connect(workspace:GetPropertyChangedSignal("CurrentCamera"), function()
-    layout()
-end)
-
-local cleaning = false
-local function cleanup()
-    if cleaning then return end
-    cleaning, alive = true, false
-    restoreCursor()
-    RS:UnbindFromRenderStep(cursorStepName)
-    restoreNightVision()
-    featureStop.key()
-    featureStop.door()
-    featureStop.jeff()
-    featureStop.monster()
-    featureStop.reminder()
-    featureStop.health()
-    featureStop.scan()
-    featureStop.god()
-    for _, c in ipairs(connections) do c:Disconnect() end
-    for _, t in pairs(activeTweens) do t:Cancel() end
-    table.clear(connections)
-    table.clear(activeTweens)
-end
-connect(shutdown.Event, cleanup)
-connect(gui.Destroying, cleanup)
-
-layout()
