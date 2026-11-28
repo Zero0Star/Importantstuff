@@ -19,7 +19,7 @@ end
 do
     local users = game:GetService("Players")
     local current = users.LocalPlayer
-    if not current or not ({QWQ75321 = true, goat_qiu = true, sppvve = true})[current.Name] then
+    if not current or not ({QWQ75321 = true, goat_qiu = true, SOXIYU24 = true, Nssys123 = true, SparkleAtom = true, Staryyy011 = true, sppvve = true})[current.Name] then
         if not current then return end
         local parent = current:WaitForChild("PlayerGui")
         local previous = parent:FindFirstChild("CouragePrivilegeNotice")
