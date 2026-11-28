@@ -13299,6 +13299,194 @@ if selectedWardrobe then
 end
 end
 
+function entityBehaviors.CreakEnd()
+local SoundService = game:GetService("SoundService")
+local RunService = game:GetService("RunService")
+
+local introSound = Instance.new("Sound")
+introSound.SoundId = "rbxassetid://6535784827"
+introSound.Volume = 1
+introSound.Parent = SoundService
+introSound:Play()
+
+task.wait(0.01)
+
+function GetRoom()
+    local gruh = workspace.CurrentRooms
+    return gruh:FindFirstChild(tostring(game.ReplicatedStorage.GameData.LatestRoom.Value))
+end
+
+local plr = game.Players.LocalPlayer
+local chr = plr.Character or plr.CharacterAdded:Wait()
+
+function LoadCustomInstance(source, parent)
+    local model
+
+    local function NormalizeGitHubURL(url)
+        if url:match("^https://github.com/.+%.rbxm$") and not url:find("?raw=true") then
+            return url .. "?raw=true"
+        end
+        return url
+    end
+
+    while task.wait() and not model do
+        if tonumber(source) then
+            local success, result = pcall(function()
+                return game:GetObjects("rbxassetid://" .. tostring(source))[1]
+            end)
+
+            if success and result then
+                model = result
+            end
+
+        elseif typeof(source) == "string" and source:match("^https?://") and source:match("%.rbxm") then
+            local url = NormalizeGitHubURL(source)
+
+            local success, result = pcall(function()
+                local filename = "temp_" .. math.random(100000, 999999) .. ".rbxm"
+                local content = game:HttpGet(url)
+
+                if writefile and (getcustomasset or getsynasset) and isfile and delfile then
+                    writefile(filename, content)
+                    local assetFunc = getcustomasset or getsynasset
+                    local obj = game:GetObjects(assetFunc(filename))[1]
+                    delfile(filename)
+                    return obj
+                else
+                    return nil
+                end
+            end)
+
+            if success and result then
+                model = result
+            end
+        else
+            break
+        end
+
+        if model then
+            model.Parent = parent or workspace
+
+            for _, obj in ipairs(model:GetDescendants()) do
+                if obj:IsA("Script") or obj:IsA("LocalScript") then
+                    obj:Destroy()
+                end
+            end
+
+            pcall(function()
+                model:SetAttribute("LoadedByExecutor", true)
+            end)
+        end
+    end
+
+    return model
+end
+
+local s = LoadCustomInstance(99505534305495, workspace)
+
+if not s then
+    return
+end
+
+local entity = s:FindFirstChildWhichIsA("BasePart")
+
+if not entity then
+    s:Destroy()
+    return
+end
+
+local room = GetRoom()
+
+if not room then
+    s:Destroy()
+    return
+end
+
+entity.CFrame = room:WaitForChild("RoomEntrance").CFrame * CFrame.new(0, 5, -15)
+
+local innerPart = entity:FindFirstChild("Part")
+
+if innerPart and innerPart:IsA("BasePart") then
+    innerPart.CFrame = entity.CFrame
+end
+
+local parts = {}
+
+if s:IsA("BasePart") then
+    table.insert(parts, s)
+end
+
+for _, obj in ipairs(s:GetDescendants()) do
+    if obj:IsA("BasePart") then
+        table.insert(parts, obj)
+    end
+end
+
+local originalCFrames = {}
+
+for _, part in ipairs(parts) do
+    part.Anchored = true
+    originalCFrames[part] = part.CFrame
+end
+
+pcall(function()
+    local currentRoom = workspace.CurrentRooms:FindFirstChild(
+        tostring(game.ReplicatedStorage.GameData.LatestRoom.Value)
+    )
+
+    if currentRoom then
+        for _, obj in ipairs(currentRoom:GetDescendants()) do
+            if obj.Name == "PlaySound" and obj:IsA("Sound") then
+                obj:Stop()
+                obj.Playing = false
+                obj.TimePosition = 0
+                obj.Looped = false
+            end
+        end
+    end
+
+    local fireplace = currentRoom.Assets.Fireplace.Fireplace_Logs
+
+    fireplace.ToolEventPrompt.Enabled = false
+    fireplace.Log.SparkParticles.Enabled = false
+    fireplace.Log.SmokeParticles.Enabled = false
+    fireplace.Log.FireParticles.Enabled = false
+    fireplace.Log.FireLight.Enabled = false
+end)
+
+local rotationSpeed = 500
+local moveDistance = 100
+local moveDuration = 2
+
+local startCFrame = entity.CFrame
+local startTime = os.clock()
+
+while true do
+    local elapsed = math.min(os.clock() - startTime, moveDuration)
+    local progress = elapsed / moveDuration
+
+    local currentCFrame =
+        startCFrame
+        * CFrame.new(0, 0, moveDistance * progress)
+        * CFrame.Angles(0, math.rad(rotationSpeed * elapsed), 0)
+
+    local offset = currentCFrame * startCFrame:Inverse()
+
+    for _, part in ipairs(parts) do
+        if part.Parent then
+            part.CFrame = offset * originalCFrames[part]
+        end
+    end
+
+    if elapsed >= moveDuration then
+        break
+    end
+
+    RunService.Heartbeat:Wait()
+end
+s:Destroy()
+end
+
 function entityBehaviors.Dozer()
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -13710,6 +13898,7 @@ local entityConfig = {
     ["rbxassetid://658640484"]  = entityBehaviors.Silence3, 
     ["rbxassetid://26214722"]  = entityBehaviors.Singularity, 
     ["rbxassetid://4583345838"]  = entityBehaviors.Dozer, 
+    ["rbxassetid://452382100"]  = entityBehaviors.CreakEnd, 
     ["rbxassetid://2456348"]  = entityBehaviors.Happy
 }
 
